@@ -136,7 +136,7 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
           <div className="dashboard-chart-card dashboard-chart-card-full">
             <h3 className="dashboard-chart-title">Performance Over Time</h3>
             <div className="dashboard-chart-container">
-              <AreaChart data={data.timelineData} width={600} height={200} />
+              <AreaChart data={data.timelineData} width={600} height={200} startDate={createdDate} />
             </div>
           </div>
         </section>

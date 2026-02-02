@@ -7,9 +7,10 @@ interface AreaChartProps {
   width?: number;
   height?: number;
   className?: string;
+  startDate?: string; // Campaign start date
 }
 
-export default function AreaChart({ data, width = 400, height = 200, className = '' }: AreaChartProps) {
+export default function AreaChart({ data, width = 400, height = 200, className = '', startDate }: AreaChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -115,19 +116,24 @@ export default function AreaChart({ data, width = 400, height = 200, className =
     ctx.font = '11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
 
+    // Calculate date range: from campaign start to today
+    const campaignStart = startDate ? new Date(startDate) : new Date();
+    const today = new Date();
+    const totalDays = Math.max(1, Math.floor((today.getTime() - campaignStart.getTime()) / (1000 * 60 * 60 * 24)));
+
     // Show labels at start, middle, and end
     const labelIndices = [0, Math.floor(data.length / 2), data.length - 1];
-    const today = new Date();
 
     labelIndices.forEach(index => {
       const point = points[index];
-      const daysAgo = data.length - 1 - index;
-      const date = new Date(today);
-      date.setDate(date.getDate() - daysAgo);
+      // Calculate date based on position in data array (0 = start date, last = today)
+      const dayOffset = Math.floor((index / (data.length - 1)) * totalDays);
+      const date = new Date(campaignStart);
+      date.setDate(date.getDate() + dayOffset);
       const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       ctx.fillText(label, point.x, height - padding.bottom + 18);
     });
-  }, [data, width, height]);
+  }, [data, width, height, startDate]);
 
   return (
     <canvas

@@ -359,7 +359,7 @@ export default function DashboardPageClient({
                 <div className="dashboard-chart-card dashboard-chart-card-large">
                   <h3 className="dashboard-chart-title">Views Over Time</h3>
                   <div className="dashboard-chart-container">
-                    <AreaChart data={data.timelineData} width={600} height={200} />
+                    <AreaChart data={data.timelineData} width={600} height={200} startDate={createdDate} />
                   </div>
                 </div>
                 <div className="dashboard-chart-card">
