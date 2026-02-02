@@ -17,13 +17,20 @@ function formatCompact(num: number): string {
 }
 
 export default function PostCard({ post, index }: PostCardProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  // Use thumbnail from sheet if available, otherwise fetch from API
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(post.thumbnailUrl || null);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
   const cardRef = useRef<HTMLAnchorElement>(null);
   const hasFetched = useRef(false);
 
   useEffect(() => {
+    // Skip API fetch if we already have a thumbnail from the sheet
+    if (post.thumbnailUrl) {
+      hasFetched.current = true;
+      return;
+    }
+
     if (!cardRef.current || hasFetched.current) return;
 
     const observer = new IntersectionObserver(
@@ -45,7 +52,7 @@ export default function PostCard({ post, index }: PostCardProps) {
     observer.observe(cardRef.current);
 
     return () => observer.disconnect();
-  }, [post.url]);
+  }, [post.url, post.thumbnailUrl]);
 
   const fetchThumbnail = async () => {
     if (!post.url) return;

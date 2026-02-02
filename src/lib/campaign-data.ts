@@ -14,7 +14,7 @@ export interface Post {
   platform: string;
   lastUpdated: string;
   sparklineData: number[];
-  thumbnailUrl?: string;  // Fetched client-side, not from sheet
+  thumbnailUrl?: string;  // From sheet Column I, or fetched client-side
 }
 
 export interface Metrics {
@@ -205,7 +205,8 @@ export function transformSheetData(sheetData: string[][], config?: CampaignConfi
       downloads,
       platform: detectPlatform(row[6] || row[1] || ''),  // Column G or URL fallback
       lastUpdated: row[7] || new Date().toISOString(),   // Column H if exists
-      sparklineData: generateSparklineData(views)
+      sparklineData: generateSparklineData(views),
+      thumbnailUrl: row[8] || undefined       // Column I - Manual thumbnail URL
     };
   }).filter(post => post.url);
 

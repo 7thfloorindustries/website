@@ -65,20 +65,8 @@ export async function getThumbnailUrl(postUrl: string): Promise<string | null> {
       }
 
       case 'twitter': {
-        // Use Microlink to capture a screenshot of the tweet
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(postUrl)}&screenshot=true&meta=false`;
-        const response = await fetch(microlinkUrl, {
-          next: { revalidate: 86400 }
-        });
-
-        if (!response.ok) return null;
-
-        const data = await response.json();
-
-        if (data.status === 'success' && data.data?.screenshot?.url) {
-          return data.data.screenshot.url;
-        }
-
+        // Twitter API access requires paid tier ($100+/month)
+        // Manual thumbnails can be added via Column I in the Google Sheet
         return null;
       }
 
