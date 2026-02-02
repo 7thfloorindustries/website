@@ -57,6 +57,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'video.twimg.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.microlink.io',
+      },
     ],
   },
   async headers() {
