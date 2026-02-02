@@ -13,7 +13,7 @@ export const campaigns: Record<string, CampaignConfig> = {
     spreadsheetId: '1RjSNpFMoKjMUtO6AotdCSEgm1xHKemvX2_1uJK5UOv4',
     spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1RjSNpFMoKjMUtO6AotdCSEgm1xHKemvX2_1uJK5UOv4/edit',
     status: 'active',
-    created: '2026-02-02T02:59:38.046Z',
+    created: '2026-01-31T00:00:00.000Z',
     platforms: {
       twitter: 13,
       tiktok: 23
