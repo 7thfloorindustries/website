@@ -187,25 +187,22 @@ export function transformSheetData(sheetData: string[][], config?: CampaignConfi
 
   // Parse rows into post objects
   const posts: Post[] = rows.map(row => {
-    const views = parseInt(row[2]) || 0;
-    const engagements = parseInt(row[3]) || 0;
-
-    // Calculate estimated breakdown from engagements
-    const likes = Math.floor(engagements * 0.7);
-    const comments = Math.floor(engagements * 0.15);
-    const shares = Math.floor(engagements * 0.15);
-    const downloads = Math.floor(views * 0.007);
+    const views = parseInt(row[2]) || 0;      // Column C - Views
+    const likes = parseInt(row[3]) || 0;       // Column D - Likes
+    const comments = parseInt(row[4]) || 0;    // Column E - Comments
+    const shares = parseInt(row[5]) || 0;      // Column F - Shares
+    const downloads = Math.floor(views * 0.007); // Estimate from views
 
     return {
-      account: row[0] || 'Unknown',
-      url: row[1] || '',
+      account: row[0] || 'Unknown',           // Column A
+      url: row[1] || '',                      // Column B
       currentViews: views,
       likes,
       comments,
       shares,
       downloads,
-      platform: detectPlatform(row[4] || row[1] || ''),
-      lastUpdated: row[5] || new Date().toISOString(),
+      platform: detectPlatform(row[6] || row[1] || ''),  // Column G or URL fallback
+      lastUpdated: row[7] || new Date().toISOString(),   // Column H if exists
       sparklineData: generateSparklineData(views)
     };
   }).filter(post => post.url);

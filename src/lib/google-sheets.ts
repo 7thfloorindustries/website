@@ -46,7 +46,7 @@ export async function fetchSheetData(spreadsheetId: string, forceRefresh = false
       try {
         response = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: `${sheetName}!A:F`,
+          range: `${sheetName}!A:H`,
         });
         if (response.data.values && response.data.values.length > 0) {
           break;
