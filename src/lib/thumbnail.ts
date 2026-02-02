@@ -65,13 +65,9 @@ export async function getThumbnailUrl(postUrl: string): Promise<string | null> {
       }
 
       case 'twitter': {
-        // Extract tweet ID from URL
-        const tweetId = extractTweetId(postUrl);
-        if (!tweetId) return null;
-
-        // Use Twitter's syndication API to get video/media thumbnails
-        const syndicationUrl = `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=0`;
-        const response = await fetch(syndicationUrl, {
+        // Use Microlink to capture a screenshot of the tweet
+        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(postUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+        const response = await fetch(microlinkUrl, {
           next: { revalidate: 86400 }
         });
 
@@ -79,25 +75,8 @@ export async function getThumbnailUrl(postUrl: string): Promise<string | null> {
 
         const data = await response.json();
 
-        // Check for video thumbnail
-        if (data.video?.poster) {
-          return data.video.poster;
-        }
-
-        // Check for media (images)
-        if (data.mediaDetails && data.mediaDetails.length > 0) {
-          const media = data.mediaDetails[0];
-          // Video thumbnail
-          if (media.video_info?.variants) {
-            return media.media_url_https;
-          }
-          // Image
-          return media.media_url_https;
-        }
-
-        // Check photos array
-        if (data.photos && data.photos.length > 0) {
-          return data.photos[0].url;
+        if (data.status === 'success' && data.data?.screenshot?.url) {
+          return data.data.screenshot.url;
         }
 
         return null;
