@@ -36,6 +36,19 @@
   [tabindex]:not([tabindex="-1"]) {
     cursor: pointer !important;
   }
+
+  /* Restore cursor on dashboard pages */
+  .dashboard-layout,
+  .dashboard-layout * {
+    cursor: auto !important;
+  }
+
+  .dashboard-layout a,
+  .dashboard-layout button,
+  .dashboard-layout input,
+  .dashboard-layout select {
+    cursor: pointer !important;
+  }
 }
 
 /* Respect reduced motion preference */
@@ -512,7 +525,7 @@ html.lenis, html.lenis body {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 50px;
   background: rgba(10, 10, 10, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
@@ -521,6 +534,16 @@ html.lenis, html.lenis body {
   justify-content: space-between;
   padding: 0 2rem;
   z-index: 100;
+}
+
+/* When dashboard has topnav, offset the content */
+.dashboard-layout .dashboard-app-container {
+  padding-top: 50px;
+}
+
+.dashboard-layout .dashboard-sidebar {
+  top: 50px;
+  height: calc(100vh - 50px);
 }
 
 .dashboard-topnav-brand {
@@ -694,6 +717,17 @@ html.lenis, html.lenis body {
   font-size: 1.25rem;
   font-weight: 700;
   color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+@media (max-width: 768px) {
+  .dashboard-main-title {
+    font-size: 1rem;
+    max-width: 50%;
+  }
 }
 
 .dashboard-main-actions {
