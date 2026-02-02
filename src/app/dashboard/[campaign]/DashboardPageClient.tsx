@@ -53,6 +53,7 @@ export default function DashboardPageClient({
   const [mounted, setMounted] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('views');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // Cover image upload state
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
@@ -134,9 +135,15 @@ export default function DashboardPageClient({
   const filteredPosts = data.posts
     .filter(post => platformFilter === 'all' || post.platform === platformFilter)
     .sort((a, b) => {
-      if (sortBy === 'views') return b.currentViews - a.currentViews;
-      if (sortBy === 'likes') return b.likes - a.likes;
-      return 0;
+      let comparison = 0;
+      if (sortBy === 'views') comparison = b.currentViews - a.currentViews;
+      else if (sortBy === 'likes') comparison = b.likes - a.likes;
+      else if (sortBy === 'engagement') {
+        const engA = a.likes + a.comments + a.shares;
+        const engB = b.likes + b.comments + b.shares;
+        comparison = engB - engA;
+      }
+      return sortOrder === 'asc' ? -comparison : comparison;
     });
 
   const copyShareLink = () => {
@@ -328,8 +335,20 @@ export default function DashboardPageClient({
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
-                    <option value="views">Most Views</option>
-                    <option value="likes">Most Likes</option>
+                    <option value="views">Views</option>
+                    <option value="likes">Likes</option>
+                    <option value="engagement">Engagement</option>
+                  </select>
+                </div>
+                <div className="dashboard-filter-section">
+                  <label className="filter-label">Order</label>
+                  <select
+                    className="dashboard-filter-select"
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value as 'desc' | 'asc')}
+                  >
+                    <option value="desc">Highest First</option>
+                    <option value="asc">Lowest First</option>
                   </select>
                 </div>
                 <div className="dashboard-filter-results">

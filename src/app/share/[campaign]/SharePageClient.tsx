@@ -25,6 +25,9 @@ function formatCompact(num: number): string {
 export default function SharePageClient({ campaignName, campaignSlug, status, createdDate, coverImage: initialCoverImage, data }: SharePageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
+  const [platformFilter, setPlatformFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('views');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   useEffect(() => {
     setMounted(true);
@@ -47,6 +50,20 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
   const formattedDate = createdDate
     ? new Date(createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const filteredPosts = data.posts
+    .filter(post => platformFilter === 'all' || post.platform === platformFilter)
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'views') comparison = b.currentViews - a.currentViews;
+      else if (sortBy === 'likes') comparison = b.likes - a.likes;
+      else if (sortBy === 'engagement') {
+        const engA = a.likes + a.comments + a.shares;
+        const engB = b.likes + b.comments + b.shares;
+        comparison = engB - engA;
+      }
+      return sortOrder === 'asc' ? -comparison : comparison;
+    });
 
   return (
     <div className="dashboard-shareable-view">
@@ -145,8 +162,51 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
       {/* Posts Grid */}
       <section className="dashboard-posts-section">
         <h3 className="dashboard-section-title">Posts</h3>
+
+        <div className="dashboard-filter-bar">
+          <div className="dashboard-filter-section">
+            <label className="filter-label">Platform</label>
+            <select
+              className="dashboard-filter-select"
+              value={platformFilter}
+              onChange={(e) => setPlatformFilter(e.target.value)}
+            >
+              <option value="all">All Platforms</option>
+              {data.platforms.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div className="dashboard-filter-section">
+            <label className="filter-label">Sort by</label>
+            <select
+              className="dashboard-filter-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="views">Views</option>
+              <option value="likes">Likes</option>
+              <option value="engagement">Engagement</option>
+            </select>
+          </div>
+          <div className="dashboard-filter-section">
+            <label className="filter-label">Order</label>
+            <select
+              className="dashboard-filter-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as 'desc' | 'asc')}
+            >
+              <option value="desc">Highest First</option>
+              <option value="asc">Lowest First</option>
+            </select>
+          </div>
+          <div className="dashboard-filter-results">
+            <span className="results-count">{filteredPosts.length}</span> posts
+          </div>
+        </div>
+
         <div className="dashboard-posts-grid">
-          {data.posts.map((post, index) => (
+          {filteredPosts.map((post, index) => (
             <PostCard key={post.url} post={post} index={index} />
           ))}
         </div>
