@@ -109,6 +109,24 @@ export default function AreaChart({ data, width = 400, height = 200, className =
         ctx.fill();
       }
     });
+
+    // Draw X-axis labels (days)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.font = '11px Inter, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+
+    // Show labels at start, middle, and end
+    const labelIndices = [0, Math.floor(data.length / 2), data.length - 1];
+    const today = new Date();
+
+    labelIndices.forEach(index => {
+      const point = points[index];
+      const daysAgo = data.length - 1 - index;
+      const date = new Date(today);
+      date.setDate(date.getDate() - daysAgo);
+      const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      ctx.fillText(label, point.x, height - padding.bottom + 18);
+    });
   }, [data, width, height]);
 
   return (
