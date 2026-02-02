@@ -122,15 +122,35 @@ function calculateMetrics(posts: Post[]): Metrics {
   };
 }
 
-function generateTimelineData(posts: Post[], days = 14): number[] {
+function generateTimelineData(posts: Post[], days = 14, seed = 0): number[] {
   const data: number[] = [];
   const totalViews = posts.reduce((sum, p) => sum + (p.currentViews || 0), 0);
 
+  if (totalViews === 0) {
+    return Array(days).fill(0);
+  }
+
+  // Use seed to create different curve characteristics per platform
+  const curveShift = 0.25 + (seed % 5) * 0.1; // Varies between 0.25-0.65
+  const steepness = 8 + (seed % 3) * 2; // Varies between 8-12
+
+  // Add some randomness based on seed
+  const pseudoRandom = (i: number) => {
+    const x = Math.sin(seed * 9999 + i * 7777) * 10000;
+    return x - Math.floor(x);
+  };
+
   for (let i = 0; i < days; i++) {
     const dayProgress = i / (days - 1);
-    const growthFactor = 1 / (1 + Math.exp(-10 * (dayProgress - 0.3)));
-    data.push(Math.round(totalViews * growthFactor));
+    // Base S-curve with varying steepness and shift point
+    const growthFactor = 1 / (1 + Math.exp(-steepness * (dayProgress - curveShift)));
+    // Add small daily variation (±5%)
+    const variation = 1 + (pseudoRandom(i) - 0.5) * 0.1;
+    data.push(Math.round(totalViews * growthFactor * variation));
   }
+
+  // Ensure last point equals total views
+  data[data.length - 1] = totalViews;
 
   return data;
 }
@@ -138,9 +158,10 @@ function generateTimelineData(posts: Post[], days = 14): number[] {
 function generateTimelineByPlatform(posts: Post[], platforms: string[], days = 14): Record<string, number[]> {
   const result: Record<string, number[]> = {};
 
-  platforms.forEach(platform => {
+  platforms.forEach((platform, index) => {
     const platformPosts = posts.filter(p => p.platform === platform);
-    result[platform] = generateTimelineData(platformPosts, days);
+    // Use platform index as seed for different curve shapes
+    result[platform] = generateTimelineData(platformPosts, days, index + 1);
   });
 
   return result;
