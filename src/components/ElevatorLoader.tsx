@@ -45,6 +45,12 @@ export default function ElevatorLoader({ onComplete, targetFloor = 7, startFloor
   const [shake, setShake] = useState(false);
   const [floorLine, setFloorLine] = useState(false);
   const hasInteractedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep the ref updated with the latest callback
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   // Track user interaction for sound
   useEffect(() => {
@@ -108,11 +114,11 @@ export default function ElevatorLoader({ onComplete, targetFloor = 7, startFloor
 
     // Complete after doors open
     timers.push(setTimeout(() => {
-      onComplete();
+      onCompleteRef.current();
     }, totalTime + 1100));
 
     return () => timers.forEach(clearTimeout);
-  }, [onComplete, targetFloor, startFloor]);
+  }, [targetFloor, startFloor]);
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden">
