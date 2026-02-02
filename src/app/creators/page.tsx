@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import CustomCursor from "@/components/CustomCursor";
@@ -8,19 +8,42 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import MagneticElement from "@/components/MagneticElement";
 import MagneticButton from "@/components/MagneticButton";
 import SectionReveal from "@/components/SectionReveal";
+import TurnstileWidget from "@/components/TurnstileWidget";
 
 const easeCustom = [0.25, 0.46, 0.45, 0.94] as const;
 
 function CreatorSignupForm() {
   const [email, setEmail] = useState("");
   const [handle, setHandle] = useState("");
+  const [company, setCompany] = useState(""); // Honeypot field
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [csrfToken, setCsrfToken] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    fetch("/api/csrf")
+      .then((res) => res.json())
+      .then((data) => setCsrfToken(data.csrfToken))
+      .catch(() => console.error("Failed to fetch CSRF token"));
+  }, []);
+
+  const handleTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !handle) return;
+
+    // Check if Turnstile is required and token is missing
+    if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the security check.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -28,8 +51,19 @@ function CreatorSignupForm() {
       const response = await fetch("/api/creator-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle, email }),
+        body: JSON.stringify({
+          handle,
+          email,
+          company,
+          csrfToken,
+          turnstileToken,
+        }),
       });
+
+      if (response.status === 403) {
+        setError("Security validation failed. Please refresh and try again.");
+        return;
+      }
 
       if (!response.ok) throw new Error("Failed to submit");
       setSubmitted(true);
@@ -77,6 +111,17 @@ function CreatorSignupForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
+      {/* Honeypot field - hidden from users, visible to bots */}
+      <input
+        type="text"
+        name="company"
+        value={company}
+        onChange={(e) => setCompany(e.target.value)}
+        className="absolute -left-[9999px] opacity-0 pointer-events-none"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+      />
       <div>
         <input
           type="text"
@@ -97,6 +142,12 @@ function CreatorSignupForm() {
           required
         />
       </div>
+      <TurnstileWidget
+        onVerify={handleTurnstileVerify}
+        onError={() => setError("Security check failed. Please try again.")}
+        onExpire={() => setTurnstileToken("")}
+        className="flex justify-center"
+      />
       {error && <p className="text-red-400 text-sm">{error}</p>}
       <MagneticButton
         onClick={() => {}}
