@@ -21,6 +21,7 @@ interface DashboardPageClientProps {
   createdDate?: string;
   spreadsheetUrl?: string;
   coverImage?: string;
+  spend?: number;
   data: CampaignData;
 }
 
@@ -52,6 +53,7 @@ export default function DashboardPageClient({
   createdDate,
   spreadsheetUrl,
   coverImage: initialCoverImage,
+  spend,
   data
 }: DashboardPageClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -308,6 +310,18 @@ export default function DashboardPageClient({
                       <span className="info-label">Avg Views/Post</span>
                       <span className="info-value highlight">{data.metrics.avgViewsPerPost.toLocaleString()}</span>
                     </div>
+                    {spend !== undefined && (
+                      <div className="dashboard-info-item">
+                        <span className="info-label">Campaign Spend</span>
+                        <span className="info-value highlight">${spend.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {spend !== undefined && spend > 0 && data.metrics.totalViews > 0 && (
+                      <div className="dashboard-info-item">
+                        <span className="info-label">Cost per 1K Views</span>
+                        <span className="info-value highlight">${((spend / data.metrics.totalViews) * 1000).toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

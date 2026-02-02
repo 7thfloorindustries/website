@@ -77,6 +77,7 @@ export default async function DashboardPage({ params }: PageProps) {
       createdDate={config.created}
       spreadsheetUrl={config.spreadsheetUrl}
       coverImage={config.coverImage}
+      spend={config.spend}
       data={data}
     />
   );

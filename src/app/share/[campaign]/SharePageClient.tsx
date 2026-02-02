@@ -17,6 +17,7 @@ interface SharePageClientProps {
   status: string;
   createdDate?: string;
   coverImage?: string;
+  spend?: number;
   data: CampaignData;
 }
 
@@ -26,7 +27,7 @@ function formatCompact(num: number): string {
   return num.toLocaleString();
 }
 
-export default function SharePageClient({ campaignName, campaignSlug, status, createdDate, coverImage: initialCoverImage, data }: SharePageClientProps) {
+export default function SharePageClient({ campaignName, campaignSlug, status, createdDate, coverImage: initialCoverImage, spend, data }: SharePageClientProps) {
   const [mounted, setMounted] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
   const [platformFilter, setPlatformFilter] = useState('all');
@@ -141,8 +142,16 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
       <section className="dashboard-stats-grid">
         <StatCard label="Total Views" value={data.metrics.totalViews} />
         <StatCard label="Posts" value={data.posts.length} />
-        <StatCard label="Platforms" value={data.platforms.length} />
-        <StatCard label="Avg / Post" value={data.metrics.avgViewsPerPost} />
+        {spend !== undefined && spend > 0 ? (
+          <StatCard label="Spend" value={spend} prefix="$" />
+        ) : (
+          <StatCard label="Platforms" value={data.platforms.length} />
+        )}
+        {spend !== undefined && spend > 0 && data.metrics.totalViews > 0 ? (
+          <StatCard label="CPM" value={`$${((spend / data.metrics.totalViews) * 1000).toFixed(2)}`} />
+        ) : (
+          <StatCard label="Avg / Post" value={data.metrics.avgViewsPerPost} />
+        )}
       </section>
 
       {/* Engagement Stats */}

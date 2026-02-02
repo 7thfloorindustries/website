@@ -82,6 +82,7 @@ export default async function SharePage({ params }: PageProps) {
       status={config.status || 'active'}
       createdDate={config.created}
       coverImage={config.coverImage}
+      spend={config.spend}
       data={data}
     />
   );

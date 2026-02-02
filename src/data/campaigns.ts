@@ -18,7 +18,8 @@ export const campaigns: Record<string, CampaignConfig> = {
       twitter: 13,
       tiktok: 23
     },
-    coverImage: 'campaigns/mike-will-made-it.jpg'
+    coverImage: 'campaigns/mike-will-made-it.jpg',
+    spend: 0  // Update with actual spend amount
   }
 };
 

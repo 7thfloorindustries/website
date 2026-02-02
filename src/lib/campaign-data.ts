@@ -67,6 +67,7 @@ export interface CampaignConfig {
   urls?: string[];
   platforms?: Record<string, number>;
   coverImage?: string;  // Path relative to public/, e.g., "campaigns/mike-will.jpg"
+  spend?: number;       // Campaign spend in USD
 }
 
 export function detectPlatform(input: string): string {

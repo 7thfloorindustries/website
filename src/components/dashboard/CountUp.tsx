@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 interface CountUpProps {
   value: number;
   duration?: number;
+  prefix?: string;
   suffix?: string;
   className?: string;
 }
 
-export default function CountUp({ value, duration = 2000, suffix = '', className = '' }: CountUpProps) {
+export default function CountUp({ value, duration = 2000, prefix = '', suffix = '', className = '' }: CountUpProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const elementRef = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);
@@ -64,7 +65,7 @@ export default function CountUp({ value, duration = 2000, suffix = '', className
 
   return (
     <span ref={elementRef} className={className}>
-      {formatNumber(displayValue)}{suffix}
+      {prefix}{formatNumber(displayValue)}{suffix}
     </span>
   );
 }
