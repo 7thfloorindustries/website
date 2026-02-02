@@ -66,7 +66,7 @@ export async function getThumbnailUrl(postUrl: string): Promise<string | null> {
 
       case 'twitter': {
         // Use Microlink to capture a screenshot of the tweet
-        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(postUrl)}&screenshot=true&meta=false&embed=screenshot.url`;
+        const microlinkUrl = `https://api.microlink.io/?url=${encodeURIComponent(postUrl)}&screenshot=true&meta=false`;
         const response = await fetch(microlinkUrl, {
           next: { revalidate: 86400 }
         });
