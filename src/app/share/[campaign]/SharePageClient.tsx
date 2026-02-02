@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
 import AreaChart from '@/components/dashboard/AreaChart';
+import ElevatorLoader from '@/components/ElevatorLoader';
+import CustomCursor from '@/components/CustomCursor';
+import AnimatedBackground from '@/components/AnimatedBackground';
 import type { CampaignData } from '@/lib/campaign-data';
 
 interface SharePageClientProps {
@@ -28,9 +32,17 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('views');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [showLoader, setShowLoader] = useState(true);
 
   useEffect(() => {
     setMounted(true);
+
+    // Check if user has visited this share page before
+    const storageKey = `7thfloor-share-${campaignSlug}`;
+    const hasVisited = sessionStorage.getItem(storageKey);
+    if (hasVisited) {
+      setShowLoader(false);
+    }
 
     // Fetch cover image from blob manifest
     async function fetchCoverImage() {
@@ -65,8 +77,26 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
       return sortOrder === 'asc' ? -comparison : comparison;
     });
 
+  const handleLoaderComplete = () => {
+    const storageKey = `7thfloor-share-${campaignSlug}`;
+    sessionStorage.setItem(storageKey, 'true');
+    setShowLoader(false);
+  };
+
   return (
-    <div className="dashboard-shareable-view">
+    <>
+      <AnimatePresence>
+        {showLoader && <ElevatorLoader onComplete={handleLoaderComplete} targetFloor={7} />}
+      </AnimatePresence>
+      <CustomCursor />
+      <AnimatedBackground />
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showLoader ? 0 : 1 }}
+        transition={{ duration: 0.5 }}
+        className="dashboard-shareable-view"
+      >
       {/* Film grain overlay */}
       <div className="dashboard-film-grain" />
       <div className="dashboard-atmosphere" />
@@ -223,6 +253,7 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
           Last updated: {new Date(data.lastUpdated).toLocaleString()} • Auto-refreshes every 5 minutes
         </p>
       </footer>
-    </div>
+      </motion.div>
+    </>
   );
 }

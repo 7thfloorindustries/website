@@ -3,10 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
 import AreaChart from '@/components/dashboard/AreaChart';
 import DonutChart from '@/components/dashboard/DonutChart';
+import ElevatorLoader from '@/components/ElevatorLoader';
+import CustomCursor from '@/components/CustomCursor';
+import AnimatedBackground from '@/components/AnimatedBackground';
+import MagneticButton from '@/components/MagneticButton';
 import type { CampaignData } from '@/lib/campaign-data';
 
 interface DashboardPageClientProps {
@@ -54,6 +59,7 @@ export default function DashboardPageClient({
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('views');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [showLoader, setShowLoader] = useState(true);
 
   // Cover image upload state
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
@@ -63,6 +69,14 @@ export default function DashboardPageClient({
 
   useEffect(() => {
     setMounted(true);
+
+    // Check if user has visited this dashboard before
+    const storageKey = `7thfloor-dashboard-${campaignSlug}`;
+    const hasVisited = sessionStorage.getItem(storageKey);
+    if (hasVisited) {
+      setShowLoader(false);
+    }
+
     // Handle hash navigation
     const hash = window.location.hash.replace('#', '') as TabType;
     if (['overview', 'posts', 'analytics', 'settings'].includes(hash)) {
@@ -174,8 +188,26 @@ export default function DashboardPageClient({
     }
   };
 
+  const handleLoaderComplete = () => {
+    const storageKey = `7thfloor-dashboard-${campaignSlug}`;
+    sessionStorage.setItem(storageKey, 'true');
+    setShowLoader(false);
+  };
+
   return (
-    <div className="dashboard-app-container">
+    <>
+      <AnimatePresence>
+        {showLoader && <ElevatorLoader onComplete={handleLoaderComplete} targetFloor={7} />}
+      </AnimatePresence>
+      <CustomCursor />
+      <AnimatedBackground />
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showLoader ? 0 : 1 }}
+        transition={{ duration: 0.5 }}
+        className="dashboard-app-container"
+      >
       {/* Film grain */}
       <div className="dashboard-film-grain" />
       <div className="dashboard-atmosphere" />
@@ -584,6 +616,7 @@ export default function DashboardPageClient({
           Last updated: {new Date(data.lastUpdated).toLocaleString()} • Auto-refreshes every 5 minutes
         </div>
       </main>
-    </div>
+      </motion.div>
+    </>
   );
 }
