@@ -46,7 +46,7 @@ export async function fetchSheetData(spreadsheetId: string, forceRefresh = false
       try {
         response = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: `${sheetName}!A:H`,
+          range: `${sheetName}!A:I`,
         });
         if (response.data.values && response.data.values.length > 0) {
           break;
@@ -86,5 +86,50 @@ export function clearCache(spreadsheetId?: string) {
     dataCache.delete(spreadsheetId);
   } else {
     dataCache.clear();
+  }
+}
+
+export async function addThumbnailColumnHeader(spreadsheetId: string): Promise<boolean> {
+  try {
+    const auth = await createOAuthClient();
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    // Try different sheet names
+    const sheetNames = ['Campaign Data', 'Sheet1', 'Data'];
+
+    for (const sheetName of sheetNames) {
+      try {
+        // Check if header already exists
+        const existing = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `${sheetName}!I1`,
+        });
+
+        if (existing.data.values?.[0]?.[0]) {
+          console.log('Thumbnail URL header already exists');
+          return true;
+        }
+
+        // Add the header
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${sheetName}!I1`,
+          valueInputOption: 'RAW',
+          requestBody: {
+            values: [['Thumbnail URL']]
+          }
+        });
+
+        console.log(`Added Thumbnail URL header to ${sheetName}`);
+        return true;
+      } catch {
+        // Try next sheet name
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Failed to add thumbnail column header:', error);
+    return false;
   }
 }
