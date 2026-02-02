@@ -16,8 +16,10 @@ function formatCompact(num: number): string {
   return num.toLocaleString();
 }
 
+const isTwitter = (url: string) => url.includes('twitter.com') || url.includes('x.com');
+
 export default function PostCard({ post, index }: PostCardProps) {
-  // Use thumbnail from sheet if available, otherwise fetch from API
+  // Use thumbnail from sheet if available, otherwise fetch from API (skip for Twitter)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(post.thumbnailUrl || null);
   const [thumbnailLoading, setThumbnailLoading] = useState(false);
   const [thumbnailError, setThumbnailError] = useState(false);
@@ -27,6 +29,12 @@ export default function PostCard({ post, index }: PostCardProps) {
   useEffect(() => {
     // Skip API fetch if we already have a thumbnail from the sheet
     if (post.thumbnailUrl) {
+      hasFetched.current = true;
+      return;
+    }
+
+    // Skip API fetch for Twitter - will show branded placeholder
+    if (isTwitter(post.url)) {
       hasFetched.current = true;
       return;
     }
@@ -73,6 +81,8 @@ export default function PostCard({ post, index }: PostCardProps) {
     }
   };
 
+  const showTwitterPlaceholder = isTwitter(post.url) && !thumbnailUrl;
+
   return (
     <a
       ref={cardRef}
@@ -92,6 +102,12 @@ export default function PostCard({ post, index }: PostCardProps) {
             className="dashboard-thumbnail-image"
             onError={() => setThumbnailError(true)}
           />
+        ) : showTwitterPlaceholder ? (
+          <div className="dashboard-thumbnail-placeholder dashboard-thumbnail-twitter">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </div>
         ) : (
           <div className={`dashboard-thumbnail-placeholder ${thumbnailLoading ? 'loading' : ''}`}>
             {thumbnailLoading ? (
