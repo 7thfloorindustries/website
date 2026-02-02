@@ -1,0 +1,140 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import StatCard from '@/components/dashboard/StatCard';
+import PostCard from '@/components/dashboard/PostCard';
+import AreaChart from '@/components/dashboard/AreaChart';
+import type { CampaignData } from '@/lib/campaign-data';
+
+interface SharePageClientProps {
+  campaignName: string;
+  status: string;
+  createdDate?: string;
+  data: CampaignData;
+}
+
+function formatCompact(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+  return num.toLocaleString();
+}
+
+export default function SharePageClient({ campaignName, status, createdDate, data }: SharePageClientProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const formattedDate = createdDate
+    ? new Date(createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  return (
+    <div className="dashboard-shareable-view">
+      {/* Film grain overlay */}
+      <div className="dashboard-film-grain" />
+      <div className="dashboard-atmosphere" />
+
+      {/* Header */}
+      <header className="dashboard-shareable-header">
+        <div className="dashboard-header-artwork">
+          <div className="dashboard-artwork-placeholder">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+          </div>
+        </div>
+        <div className="dashboard-header-info">
+          <h1 className="dashboard-campaign-title">{campaignName}</h1>
+          <div className="dashboard-title-underline" />
+          <div className="dashboard-campaign-meta">
+            <span className="meta-posts">{data.posts.length} Live Posts</span>
+            <span className="meta-separator">•</span>
+            <span className="meta-status">{status === 'active' ? 'In-Progress' : status}</span>
+          </div>
+        </div>
+        <div className="dashboard-live-badge">
+          <span className="live-dot" />
+          LIVE
+        </div>
+      </header>
+
+      {/* Main Stats */}
+      <section className="dashboard-stats-grid">
+        <StatCard label="Total Views" value={data.metrics.totalViews} />
+        <StatCard label="Posts" value={data.posts.length} />
+        <StatCard label="Platforms" value={data.platforms.length} />
+        <StatCard label="Avg / Post" value={data.metrics.avgViewsPerPost} />
+      </section>
+
+      {/* Engagement Stats */}
+      <section className="dashboard-engagement-stats-row">
+        <div className="dashboard-mini-stat-card">
+          <span className="mini-stat-icon">♥</span>
+          <div className="mini-stat-data">
+            <span className="mini-stat-value">{formatCompact(data.metrics.totalLikes)}</span>
+            <span className="mini-stat-label">Likes</span>
+          </div>
+        </div>
+        <div className="dashboard-mini-stat-card">
+          <span className="mini-stat-icon">💬</span>
+          <div className="mini-stat-data">
+            <span className="mini-stat-value">{formatCompact(data.metrics.totalComments)}</span>
+            <span className="mini-stat-label">Comments</span>
+          </div>
+        </div>
+        <div className="dashboard-mini-stat-card">
+          <span className="mini-stat-icon">↗</span>
+          <div className="mini-stat-data">
+            <span className="mini-stat-value">{formatCompact(data.metrics.totalShares)}</span>
+            <span className="mini-stat-label">Shares</span>
+          </div>
+        </div>
+        <div className="dashboard-mini-stat-card">
+          <span className="mini-stat-icon">⬇</span>
+          <div className="mini-stat-data">
+            <span className="mini-stat-value">{formatCompact(data.metrics.totalDownloads)}</span>
+            <span className="mini-stat-label">Downloads</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Performance Chart */}
+      {mounted && data.timelineData.length > 0 && (
+        <section className="dashboard-chart-section">
+          <div className="dashboard-chart-card dashboard-chart-card-full">
+            <h3 className="dashboard-chart-title">Performance Over Time</h3>
+            <div className="dashboard-chart-container">
+              <AreaChart data={data.timelineData} width={600} height={200} />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Posts Grid */}
+      <section className="dashboard-posts-section">
+        <h3 className="dashboard-section-title">Posts</h3>
+        <div className="dashboard-posts-grid">
+          {data.posts.map((post, index) => (
+            <PostCard key={post.url} post={post} index={index} />
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="dashboard-shareable-footer">
+        <div className="dashboard-footer-divider" />
+        <p className="dashboard-footer-text">
+          Generated by <span className="dashboard-footer-brand">7th Floor Digital</span> •
+          Campaign Tracking • {formattedDate}
+        </p>
+        <p className="dashboard-footer-updated">
+          Last updated: {new Date(data.lastUpdated).toLocaleString()} • Auto-refreshes every 5 minutes
+        </p>
+      </footer>
+    </div>
+  );
+}
