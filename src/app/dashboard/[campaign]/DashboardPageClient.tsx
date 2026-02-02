@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
-import AreaChart from '@/components/dashboard/AreaChart';
+import AreaChart, { PLATFORM_COLORS } from '@/components/dashboard/AreaChart';
 import DonutChart from '@/components/dashboard/DonutChart';
 import ElevatorLoader from '@/components/ElevatorLoader';
 import CustomCursor from '@/components/CustomCursor';
@@ -59,6 +59,7 @@ export default function DashboardPageClient({
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [mounted, setMounted] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all');
+  const [chartPlatform, setChartPlatform] = useState('all');
   const [sortBy, setSortBy] = useState('views');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showLoader, setShowLoader] = useState(true);
@@ -422,9 +423,26 @@ export default function DashboardPageClient({
 
               <div className="dashboard-charts-grid">
                 <div className="dashboard-chart-card dashboard-chart-card-large">
-                  <h3 className="dashboard-chart-title">Views Over Time</h3>
+                  <div className="dashboard-chart-header">
+                    <h3 className="dashboard-chart-title">Views Over Time</h3>
+                    <select
+                      className="dashboard-chart-filter"
+                      value={chartPlatform}
+                      onChange={(e) => setChartPlatform(e.target.value)}
+                    >
+                      <option value="all">All Platforms</option>
+                      {data.platforms.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="dashboard-chart-container">
-                    <AreaChart data={data.timelineData} width={600} height={200} />
+                    <AreaChart
+                      data={chartPlatform === 'all' ? data.timelineData : (data.timelineByPlatform[chartPlatform] || data.timelineData)}
+                      width={600}
+                      height={200}
+                      color={PLATFORM_COLORS[chartPlatform] || PLATFORM_COLORS['all']}
+                    />
                   </div>
                 </div>
                 <div className="dashboard-chart-card">

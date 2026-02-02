@@ -50,6 +50,7 @@ export interface CampaignData {
   metrics: Metrics;
   platforms: string[];
   timelineData: number[];
+  timelineByPlatform: Record<string, number[]>;
   platformBreakdown: PlatformBreakdown[];
   activities: Activity[];
   topPerformers: Post[];
@@ -134,6 +135,17 @@ function generateTimelineData(posts: Post[], days = 14): number[] {
   return data;
 }
 
+function generateTimelineByPlatform(posts: Post[], platforms: string[], days = 14): Record<string, number[]> {
+  const result: Record<string, number[]> = {};
+
+  platforms.forEach(platform => {
+    const platformPosts = posts.filter(p => p.platform === platform);
+    result[platform] = generateTimelineData(platformPosts, days);
+  });
+
+  return result;
+}
+
 function generatePlatformBreakdown(posts: Post[]): PlatformBreakdown[] {
   const breakdown: Record<string, { count: number; views: number }> = {};
 
@@ -215,6 +227,7 @@ export function transformSheetData(sheetData: string[][], config?: CampaignConfi
   const metrics = calculateMetrics(posts);
   const platforms = [...new Set(posts.map(p => p.platform))];
   const timelineData = generateTimelineData(posts);
+  const timelineByPlatform = generateTimelineByPlatform(posts, platforms);
   const platformBreakdown = generatePlatformBreakdown(posts);
   const activities = generateActivityFeed(posts, config?.created);
 
@@ -233,6 +246,7 @@ export function transformSheetData(sheetData: string[][], config?: CampaignConfi
     metrics,
     platforms,
     timelineData,
+    timelineByPlatform,
     platformBreakdown,
     activities,
     topPerformers,

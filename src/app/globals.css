@@ -1161,11 +1161,48 @@ html.lenis, html.lenis body {
   width: 100%;
 }
 
+.dashboard-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dashboard-chart-header .dashboard-chart-title {
+  margin-bottom: 0;
+}
+
 .dashboard-chart-title {
   font-size: 0.875rem;
   font-weight: 600;
   color: white;
   margin-bottom: 1rem;
+}
+
+.dashboard-chart-filter {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dashboard-chart-filter:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--gold-primary);
+}
+
+.dashboard-chart-filter:focus {
+  outline: none;
+  border-color: var(--gold-primary);
+}
+
+.dashboard-chart-filter option {
+  background: #1a1a1a;
+  color: white;
 }
 
 .dashboard-chart-container {

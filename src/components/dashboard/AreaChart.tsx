@@ -7,9 +7,20 @@ interface AreaChartProps {
   width?: number;
   height?: number;
   className?: string;
+  color?: string;
 }
 
-export default function AreaChart({ data, width = 400, height = 200, className = '' }: AreaChartProps) {
+export const PLATFORM_COLORS: Record<string, string> = {
+  'all': '#C4A35A',
+  'TikTok': '#00f2ea',
+  'X / Twitter': '#1DA1F2',
+  'Instagram': '#E1306C',
+  'YouTube': '#FF0000',
+  'Facebook': '#4267B2',
+};
+
+export default function AreaChart({ data, width = 400, height = 200, className = '', color }: AreaChartProps) {
+  const chartColor = color || '#C4A35A';
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -65,10 +76,19 @@ export default function AreaChart({ data, width = 400, height = 200, className =
       ctx.fillText(label, padding.left - 10, y + 4);
     }
 
-    // Create gradient fill
+    // Create gradient fill - convert hex to rgba
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 196, g: 163, b: 90 };
+    };
+    const rgb = hexToRgb(chartColor);
     const gradient = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-    gradient.addColorStop(0, 'rgba(196, 163, 90, 0.4)');
-    gradient.addColorStop(1, 'rgba(196, 163, 90, 0.02)');
+    gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`);
+    gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.02)`);
 
     // Draw filled area
     ctx.beginPath();
@@ -83,19 +103,19 @@ export default function AreaChart({ data, width = 400, height = 200, className =
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     points.forEach(point => ctx.lineTo(point.x, point.y));
-    ctx.strokeStyle = '#C4A35A';
+    ctx.strokeStyle = chartColor;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
 
     // Draw glow effect
-    ctx.shadowColor = 'rgba(196, 163, 90, 0.5)';
+    ctx.shadowColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`;
     ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     points.forEach(point => ctx.lineTo(point.x, point.y));
-    ctx.strokeStyle = '#C4A35A';
+    ctx.strokeStyle = chartColor;
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -105,12 +125,12 @@ export default function AreaChart({ data, width = 400, height = 200, className =
       if (index % 2 === 0 || index === points.length - 1) {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#C4A35A';
+        ctx.fillStyle = chartColor;
         ctx.fill();
       }
     });
 
-  }, [data, width, height]);
+  }, [data, width, height, chartColor]);
 
   return (
     <canvas

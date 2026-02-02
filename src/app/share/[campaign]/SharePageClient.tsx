@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
-import AreaChart from '@/components/dashboard/AreaChart';
+import AreaChart, { PLATFORM_COLORS } from '@/components/dashboard/AreaChart';
 import ElevatorLoader from '@/components/ElevatorLoader';
 import CustomCursor from '@/components/CustomCursor';
 import AnimatedBackground from '@/components/AnimatedBackground';
@@ -31,6 +31,7 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
   const [mounted, setMounted] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
   const [platformFilter, setPlatformFilter] = useState('all');
+  const [chartPlatform, setChartPlatform] = useState('all');
   const [sortBy, setSortBy] = useState('views');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showLoader, setShowLoader] = useState(true);
@@ -190,9 +191,26 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
       {mounted && data.timelineData.length > 0 && (
         <section className="dashboard-chart-section">
           <div className="dashboard-chart-card dashboard-chart-card-full">
-            <h3 className="dashboard-chart-title">Performance Over Time</h3>
+            <div className="dashboard-chart-header">
+              <h3 className="dashboard-chart-title">Performance Over Time</h3>
+              <select
+                className="dashboard-chart-filter"
+                value={chartPlatform}
+                onChange={(e) => setChartPlatform(e.target.value)}
+              >
+                <option value="all">All Platforms</option>
+                {data.platforms.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
             <div className="dashboard-chart-container">
-              <AreaChart data={data.timelineData} width={600} height={200} />
+              <AreaChart
+                data={chartPlatform === 'all' ? data.timelineData : (data.timelineByPlatform[chartPlatform] || data.timelineData)}
+                width={600}
+                height={200}
+                color={PLATFORM_COLORS[chartPlatform] || PLATFORM_COLORS['all']}
+              />
             </div>
           </div>
         </section>

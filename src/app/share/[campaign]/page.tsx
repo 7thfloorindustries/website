@@ -67,6 +67,7 @@ export default async function SharePage({ params }: PageProps) {
       },
       platforms: [],
       timelineData: [],
+      timelineByPlatform: {},
       platformBreakdown: [],
       activities: [],
       topPerformers: [],
