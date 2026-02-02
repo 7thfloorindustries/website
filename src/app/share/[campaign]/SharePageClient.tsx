@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import StatCard from '@/components/dashboard/StatCard';
@@ -10,6 +10,13 @@ import ElevatorLoader from '@/components/ElevatorLoader';
 import CustomCursor from '@/components/CustomCursor';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import type { CampaignData } from '@/lib/campaign-data';
+
+interface HistoricalSnapshot {
+  timestamp: string;
+  totalViews: number;
+  totalLikes: number;
+  byPlatform: Record<string, { views: number; likes: number; posts: number }>;
+}
 
 interface SharePageClientProps {
   campaignName: string;
@@ -35,6 +42,8 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
   const [sortBy, setSortBy] = useState('views');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [showLoader, setShowLoader] = useState(true);
+  const [historicalData, setHistoricalData] = useState<HistoricalSnapshot[]>([]);
+  const [hasHistoricalData, setHasHistoricalData] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -59,7 +68,45 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
       }
     }
     fetchCoverImage();
+
+    // Fetch historical data for real timeline charts
+    async function fetchHistoricalData() {
+      try {
+        const response = await fetch(`/api/campaign/${campaignSlug}/history?days=14`);
+        const result = await response.json();
+        if (result.snapshots && result.snapshots.length > 0) {
+          setHistoricalData(result.snapshots);
+          setHasHistoricalData(true);
+        }
+      } catch (error) {
+        console.error('Failed to fetch historical data:', error);
+      }
+    }
+    fetchHistoricalData();
   }, [campaignSlug]);
+
+  // Generate timeline data from historical snapshots
+  const getTimelineData = useCallback((platform: string): number[] => {
+    if (!hasHistoricalData || historicalData.length === 0) {
+      // Fall back to synthetic data
+      return platform === 'all'
+        ? data.timelineData
+        : (data.timelineByPlatform[platform] || data.timelineData);
+    }
+
+    // Sort snapshots by timestamp
+    const sorted = [...historicalData].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    // Extract views for the selected platform
+    return sorted.map(snapshot => {
+      if (platform === 'all') {
+        return snapshot.totalViews;
+      }
+      return snapshot.byPlatform[platform]?.views || 0;
+    });
+  }, [hasHistoricalData, historicalData, data.timelineData, data.timelineByPlatform]);
 
   const formattedDate = createdDate
     ? new Date(createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -206,12 +253,15 @@ export default function SharePageClient({ campaignName, campaignSlug, status, cr
             </div>
             <div className="dashboard-chart-container">
               <AreaChart
-                data={chartPlatform === 'all' ? data.timelineData : (data.timelineByPlatform[chartPlatform] || data.timelineData)}
+                data={getTimelineData(chartPlatform)}
                 width={600}
                 height={200}
                 color={PLATFORM_COLORS[chartPlatform] || PLATFORM_COLORS['all']}
               />
             </div>
+            {hasHistoricalData && (
+              <div className="dashboard-chart-badge">Live Data</div>
+            )}
           </div>
         </section>
       )}
