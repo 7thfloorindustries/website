@@ -17,7 +17,8 @@ export const campaigns: Record<string, CampaignConfig> = {
     platforms: {
       twitter: 13,
       tiktok: 23
-    }
+    },
+    coverImage: 'campaigns/mike-will-made-it.jpg'
   }
 };
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
 import AreaChart from '@/components/dashboard/AreaChart';
@@ -14,6 +15,7 @@ interface DashboardPageClientProps {
   status: string;
   createdDate?: string;
   spreadsheetUrl?: string;
+  coverImage?: string;
   data: CampaignData;
 }
 
@@ -44,12 +46,19 @@ export default function DashboardPageClient({
   status,
   createdDate,
   spreadsheetUrl,
+  coverImage: initialCoverImage,
   data
 }: DashboardPageClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [mounted, setMounted] = useState(false);
   const [platformFilter, setPlatformFilter] = useState('all');
   const [sortBy, setSortBy] = useState('views');
+
+  // Cover image upload state
+  const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -58,7 +67,60 @@ export default function DashboardPageClient({
     if (['overview', 'posts', 'analytics', 'settings'].includes(hash)) {
       setActiveTab(hash);
     }
-  }, []);
+
+    // Fetch cover image from blob manifest (may override static config)
+    async function fetchCoverImage() {
+      try {
+        const response = await fetch(`/api/upload?campaign=${campaignSlug}`);
+        const data = await response.json();
+        if (data.coverImage) {
+          setCoverImage(data.coverImage);
+        }
+      } catch (error) {
+        console.error('Failed to fetch cover image:', error);
+      }
+    }
+    fetchCoverImage();
+  }, [campaignSlug]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadStatus('uploading');
+    setUploadError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('campaignSlug', campaignSlug);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      setCoverImage(result.url);
+      setUploadStatus('success');
+
+      // Reset status after 3 seconds
+      setTimeout(() => setUploadStatus('idle'), 3000);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+      setUploadStatus('error');
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -115,6 +177,17 @@ export default function DashboardPageClient({
       <aside className="dashboard-sidebar">
         <div className="dashboard-sidebar-header">
           <div className="dashboard-sidebar-brand">7TH FLOOR</div>
+          {coverImage && (
+            <div className="dashboard-sidebar-cover">
+              <Image
+                src={coverImage.startsWith('http') ? coverImage : `/${coverImage}`}
+                alt={`${campaignName} cover`}
+                width={200}
+                height={112}
+                className="dashboard-cover-image"
+              />
+            </div>
+          )}
           <div className="dashboard-sidebar-campaign">{campaignName}</div>
         </div>
 
@@ -386,6 +459,63 @@ export default function DashboardPageClient({
                       </div>
                     </div>
                   )}
+                </div>
+              </section>
+
+              <section className="dashboard-settings-section">
+                <h2 className="dashboard-section-title">Cover Image</h2>
+                <div className="dashboard-settings-card">
+                  <div className="dashboard-cover-upload-section">
+                    <div className="dashboard-cover-preview">
+                      {coverImage ? (
+                        <Image
+                          src={coverImage.startsWith('http') ? coverImage : `/${coverImage}`}
+                          alt="Campaign cover"
+                          width={200}
+                          height={112}
+                          className="cover-preview-image"
+                        />
+                      ) : (
+                        <div className="cover-preview-placeholder">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                          </svg>
+                          <span>No cover image</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="dashboard-cover-upload-controls">
+                      <p className="setting-description">
+                        Upload a cover image for this campaign. Recommended size: 800x450px (16:9 ratio).
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handleFileUpload}
+                        className="dashboard-file-input"
+                        id="cover-upload"
+                      />
+                      <label htmlFor="cover-upload" className="dashboard-btn dashboard-btn-secondary dashboard-upload-btn">
+                        {uploadStatus === 'uploading' ? (
+                          <>
+                            <span className="upload-spinner" />
+                            Uploading...
+                          </>
+                        ) : (
+                          'Choose Image'
+                        )}
+                      </label>
+                      {uploadStatus === 'success' && (
+                        <span className="upload-success">Image uploaded successfully!</span>
+                      )}
+                      {uploadStatus === 'error' && (
+                        <span className="upload-error">{uploadError}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </section>
 

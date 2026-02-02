@@ -34,7 +34,8 @@ export async function GET(
         slug: config.slug || slug,
         status: config.status,
         created: config.created,
-        spreadsheetUrl: config.spreadsheetUrl
+        spreadsheetUrl: config.spreadsheetUrl,
+        coverImage: config.coverImage
       },
       ...liveData
     }, {

@@ -23,6 +23,34 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.tiktokcdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.tiktokcdn-us.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'p16-sign-va.tiktokcdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'p16-sign.tiktokcdn-us.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'p77-sign.tiktokcdn-us.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+    ],
+  },
   async headers() {
     return [
       {

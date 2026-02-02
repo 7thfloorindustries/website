@@ -14,6 +14,7 @@ export interface Post {
   platform: string;
   lastUpdated: string;
   sparklineData: number[];
+  thumbnailUrl?: string;  // Fetched client-side, not from sheet
 }
 
 export interface Metrics {
@@ -65,6 +66,7 @@ export interface CampaignConfig {
   created?: string;
   urls?: string[];
   platforms?: Record<string, number>;
+  coverImage?: string;  // Path relative to public/, e.g., "campaigns/mike-will.jpg"
 }
 
 export function detectPlatform(input: string): string {

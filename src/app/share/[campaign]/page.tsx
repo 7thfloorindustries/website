@@ -78,8 +78,10 @@ export default async function SharePage({ params }: PageProps) {
   return (
     <SharePageClient
       campaignName={config.name}
+      campaignSlug={campaign}
       status={config.status || 'active'}
       createdDate={config.created}
+      coverImage={config.coverImage}
       data={data}
     />
   );

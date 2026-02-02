@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import StatCard from '@/components/dashboard/StatCard';
 import PostCard from '@/components/dashboard/PostCard';
 import AreaChart from '@/components/dashboard/AreaChart';
@@ -8,8 +9,10 @@ import type { CampaignData } from '@/lib/campaign-data';
 
 interface SharePageClientProps {
   campaignName: string;
+  campaignSlug: string;
   status: string;
   createdDate?: string;
+  coverImage?: string;
   data: CampaignData;
 }
 
@@ -19,12 +22,27 @@ function formatCompact(num: number): string {
   return num.toLocaleString();
 }
 
-export default function SharePageClient({ campaignName, status, createdDate, data }: SharePageClientProps) {
+export default function SharePageClient({ campaignName, campaignSlug, status, createdDate, coverImage: initialCoverImage, data }: SharePageClientProps) {
   const [mounted, setMounted] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+
+    // Fetch cover image from blob manifest
+    async function fetchCoverImage() {
+      try {
+        const response = await fetch(`/api/upload?campaign=${campaignSlug}`);
+        const data = await response.json();
+        if (data.coverImage) {
+          setCoverImage(data.coverImage);
+        }
+      } catch (error) {
+        console.error('Failed to fetch cover image:', error);
+      }
+    }
+    fetchCoverImage();
+  }, [campaignSlug]);
 
   const formattedDate = createdDate
     ? new Date(createdDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -39,13 +57,23 @@ export default function SharePageClient({ campaignName, status, createdDate, dat
       {/* Header */}
       <header className="dashboard-shareable-header">
         <div className="dashboard-header-artwork">
-          <div className="dashboard-artwork-placeholder">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <path d="M21 15l-5-5L5 21"/>
-            </svg>
-          </div>
+          {coverImage ? (
+            <Image
+              src={coverImage.startsWith('http') ? coverImage : `/${coverImage}`}
+              alt={`${campaignName} cover`}
+              width={100}
+              height={100}
+              className="dashboard-header-cover-image"
+            />
+          ) : (
+            <div className="dashboard-artwork-placeholder">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <path d="M21 15l-5-5L5 21"/>
+              </svg>
+            </div>
+          )}
         </div>
         <div className="dashboard-header-info">
           <h1 className="dashboard-campaign-title">{campaignName}</h1>
