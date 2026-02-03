@@ -250,11 +250,7 @@ export default function LeaderboardTable({
                         {formatDelta(entry.delta7d)}
                       </span>
                     ) : (
-                      <span
-                        className={`broke-dash-growth ${isPositiveGrowth ? 'broke-dash-growth-positive' : 'broke-dash-growth-negative'}`}
-                      >
-                        {formatDelta(entry.deltaFollowers)}
-                      </span>
+                      <span style={{ color: 'var(--dash-muted)', fontSize: '0.875rem' }}>—</span>
                     )}
                   </td>
 
