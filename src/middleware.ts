@@ -137,8 +137,8 @@ export async function middleware(request: NextRequest) {
 
   // Host-based routing for brokedown.app
   if (host === 'brokedown.app' || host.startsWith('brokedown.app:')) {
-    // Skip if already on /broke path
-    if (!pathname.startsWith('/broke')) {
+    // Skip API routes and paths already on /broke
+    if (!pathname.startsWith('/broke') && !pathname.startsWith('/api')) {
       const url = request.nextUrl.clone();
       url.pathname = pathname === '/' ? '/broke' : `/broke${pathname}`;
       return NextResponse.rewrite(url);
