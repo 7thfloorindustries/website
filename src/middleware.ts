@@ -132,6 +132,19 @@ export async function middleware(request: NextRequest) {
   // Initialize Redis on first request
   await initRedis();
 
+  const host = request.headers.get('host') || '';
+  const pathname = request.nextUrl.pathname;
+
+  // Host-based routing for brokedown.app
+  if (host === 'brokedown.app' || host.startsWith('brokedown.app:')) {
+    // Skip if already on /broke path
+    if (!pathname.startsWith('/broke')) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname === '/' ? '/broke' : `/broke${pathname}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   const response = NextResponse.next();
 
   // Generate nonce for CSP
