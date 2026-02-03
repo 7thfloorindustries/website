@@ -23,31 +23,25 @@
 /* Hide default cursor on desktop - with accessibility override */
 @media (pointer: fine) {
   * {
-    cursor: none !important;
+    cursor: none;
   }
 
   /* Restore default cursor for interactive elements for accessibility */
-  a,
-  button,
-  input,
-  textarea,
-  select,
-  [role="button"],
-  [tabindex]:not([tabindex="-1"]) {
+  /* Exclude dashboard pages (they use custom cursor) */
+  body:not(.dashboard-cursor-active) a,
+  body:not(.dashboard-cursor-active) button,
+  body:not(.dashboard-cursor-active) input,
+  body:not(.dashboard-cursor-active) textarea,
+  body:not(.dashboard-cursor-active) select,
+  body:not(.dashboard-cursor-active) [role="button"],
+  body:not(.dashboard-cursor-active) [tabindex]:not([tabindex="-1"]) {
     cursor: pointer !important;
   }
 
-  /* Restore cursor on dashboard pages */
-  .dashboard-layout,
-  .dashboard-layout * {
-    cursor: auto !important;
-  }
-
-  .dashboard-layout a,
-  .dashboard-layout button,
-  .dashboard-layout input,
-  .dashboard-layout select {
-    cursor: pointer !important;
+  /* When dashboard cursor is active, hide all native cursors */
+  body.dashboard-cursor-active,
+  body.dashboard-cursor-active * {
+    cursor: none !important;
   }
 }
 
@@ -647,7 +641,6 @@ html.lenis, html.lenis body {
   background: none;
   width: 100%;
   text-align: left;
-  cursor: pointer;
   border-left: 3px solid transparent;
 }
 
@@ -1020,7 +1013,6 @@ html.lenis, html.lenis body {
   padding: 0.5rem 0.75rem;
   color: white;
   font-size: 0.8125rem;
-  cursor: pointer;
 }
 
 .dashboard-filter-results {
@@ -1186,7 +1178,6 @@ html.lenis, html.lenis body {
   color: white;
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -1394,7 +1385,6 @@ html.lenis, html.lenis body {
   font-size: 0.8125rem;
   font-weight: 500;
   transition: all 0.2s;
-  cursor: pointer;
   border: none;
 }
 
@@ -1434,7 +1424,6 @@ html.lenis, html.lenis body {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
-  cursor: pointer;
   transition: all 0.2s;
 }
 
@@ -1798,7 +1787,6 @@ html.lenis, html.lenis body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  cursor: pointer;
   width: fit-content;
 }
 

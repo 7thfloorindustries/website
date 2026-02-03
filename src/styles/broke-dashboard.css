@@ -1,0 +1,885 @@
+/* BROKE Dashboard Styles */
+/* Extends BROKE design system with dashboard-specific styles */
+
+/* Hide the BROKE page gradient overlays on dashboard - they obscure table rows */
+/* Uses body.dashboard-cursor-active as fallback for browsers without :has() support */
+body.dashboard-cursor-active .broke-gradient-top,
+body.dashboard-cursor-active .broke-gradient-bottom,
+.broke-page:has(.broke-dashboard) .broke-gradient-top,
+.broke-page:has(.broke-dashboard) .broke-gradient-bottom {
+  display: none !important;
+}
+
+/* NUCLEAR CURSOR OVERRIDE - Must be at top of file */
+/* Uses transparent 1x1 PNG cursor instead of cursor:none for better browser support */
+body.dashboard-cursor-active,
+body.dashboard-cursor-active *,
+body.dashboard-cursor-active *:hover,
+body.dashboard-cursor-active *:focus,
+body.dashboard-cursor-active *:active,
+body.dashboard-cursor-active *::before,
+body.dashboard-cursor-active *::after,
+body.dashboard-cursor-active html,
+body.dashboard-cursor-active svg,
+body.dashboard-cursor-active svg *,
+body.dashboard-cursor-active table,
+body.dashboard-cursor-active table *,
+body.dashboard-cursor-active tr,
+body.dashboard-cursor-active tr:hover,
+body.dashboard-cursor-active td,
+body.dashboard-cursor-active th,
+body.dashboard-cursor-active a,
+body.dashboard-cursor-active a:hover,
+body.dashboard-cursor-active button,
+body.dashboard-cursor-active button:hover {
+  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') 0 0, none !important;
+}
+
+/* Dashboard Variables - Override gold with BROKE yellow */
+.broke-dashboard {
+  --dash-accent: #ffd600;
+  --dash-accent-light: #ffe233;
+  --dash-accent-glow: rgba(255, 214, 0, 0.3);
+  --dash-background: #0A0A0A;
+  --dash-foreground: #FFFFFF;
+  --dash-muted: rgba(255, 255, 255, 0.4);
+  --dash-card-start: #111111;
+  --dash-card-end: #0D0D0D;
+  --dash-border: rgba(255, 255, 255, 0.08);
+  --dash-sidebar-width: 220px;
+
+  /* Platform colors */
+  --dash-tiktok: #00f2ea;
+  --dash-instagram: #E1306C;
+  --dash-twitter: #1DA1F2;
+
+  /* Growth colors */
+  --dash-positive: #22C55E;
+  --dash-negative: #EF4444;
+}
+
+/* Dashboard Layout */
+.broke-dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--dash-background);
+}
+
+.broke-dashboard-main {
+  flex: 1;
+  margin-left: var(--dash-sidebar-width);
+  padding-top: var(--broke-nav-height, 80px);
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  .broke-dashboard-main {
+    margin-left: 0;
+  }
+}
+
+@media screen and (min-width: 1440px) {
+  .broke-dashboard-main {
+    padding-top: 100px;
+  }
+}
+
+/* Dashboard Sidebar */
+.broke-dashboard-sidebar {
+  position: fixed;
+  left: 0;
+  top: 80px;
+  bottom: 0;
+  width: var(--dash-sidebar-width);
+  background: linear-gradient(180deg, #0D0D0D 0%, var(--dash-background) 100%);
+  border-right: 1px solid var(--dash-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  padding-top: 1rem;
+}
+
+@media screen and (min-width: 1440px) {
+  .broke-dashboard-sidebar {
+    top: 100px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .broke-dashboard-sidebar {
+    display: none;
+  }
+}
+
+.broke-dashboard-sidebar-brand {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.broke-dashboard-sidebar-brand h2 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--dash-accent);
+  margin: 0 0 0.25rem 0;
+}
+
+.broke-dashboard-sidebar-brand p {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dash-foreground);
+  margin: 0;
+}
+
+.broke-dashboard-sidebar-nav {
+  padding: 1rem 0;
+}
+
+.broke-dashboard-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.broke-dashboard-sidebar-nav a:hover {
+  color: var(--dash-foreground);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.broke-dashboard-sidebar-nav a.active {
+  color: var(--dash-accent);
+  background: rgba(255, 214, 0, 0.1);
+  border-left-color: var(--dash-accent);
+}
+
+.broke-dashboard-sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--dash-border);
+  font-size: 0.65rem;
+  color: var(--dash-muted);
+}
+
+/* Money Mode Toggle */
+.broke-dashboard-sidebar-toggle {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--dash-border);
+}
+
+.broke-dash-money-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.broke-dash-money-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 214, 0, 0.3);
+}
+
+.broke-dash-money-toggle.active {
+  background: rgba(255, 214, 0, 0.1);
+  border-color: rgba(255, 214, 0, 0.4);
+}
+
+.broke-dash-money-toggle .toggle-icon {
+  font-size: 1rem;
+}
+
+.broke-dash-money-toggle .toggle-label {
+  flex: 1;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  transition: color 0.2s ease;
+}
+
+.broke-dash-money-toggle.active .toggle-label {
+  color: var(--dash-accent);
+}
+
+.broke-dash-money-toggle .toggle-switch {
+  width: 32px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.broke-dash-money-toggle .toggle-switch.on {
+  background: var(--dash-accent);
+}
+
+.broke-dash-money-toggle .toggle-knob {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.broke-dash-money-toggle .toggle-switch.on .toggle-knob {
+  transform: translateX(14px);
+}
+
+/* Dashboard Cursor - Hide native cursor via body class */
+/* Use maximum specificity to override all cursor rules including .broke-page */
+body.dashboard-cursor-active,
+body.dashboard-cursor-active *,
+body.dashboard-cursor-active *::before,
+body.dashboard-cursor-active *::after,
+body.dashboard-cursor-active a,
+body.dashboard-cursor-active a:link,
+body.dashboard-cursor-active a:visited,
+body.dashboard-cursor-active a:hover,
+body.dashboard-cursor-active a:active,
+body.dashboard-cursor-active a[target="_blank"],
+body.dashboard-cursor-active button,
+body.dashboard-cursor-active button:hover,
+body.dashboard-cursor-active input,
+body.dashboard-cursor-active textarea,
+body.dashboard-cursor-active select,
+body.dashboard-cursor-active option,
+body.dashboard-cursor-active th,
+body.dashboard-cursor-active th.sortable,
+body.dashboard-cursor-active th.sortable:hover,
+body.dashboard-cursor-active label,
+body.dashboard-cursor-active [role="button"],
+body.dashboard-cursor-active [tabindex],
+body.dashboard-cursor-active [onclick],
+.broke-page body.dashboard-cursor-active *,
+.broke-page.dashboard-cursor-active *,
+body.dashboard-cursor-active .broke-page *,
+body.dashboard-cursor-active .broke-page a:hover,
+body.dashboard-cursor-active .broke-page button,
+body.dashboard-cursor-active .broke-dashboard *,
+body.dashboard-cursor-active .broke-dashboard a:hover,
+body.dashboard-cursor-active .broke-dashboard button,
+body.dashboard-cursor-active .broke-dash-table th.sortable,
+body.dashboard-cursor-active .broke-dash-table th.sortable:hover,
+body.dashboard-cursor-active .broke-dash-btn,
+body.dashboard-cursor-active .broke-dash-select,
+body.dashboard-cursor-active .broke-dash-platform-btn {
+  cursor: none !important;
+}
+
+/* Nuclear option - override EVERYTHING when dashboard cursor is active */
+/* This uses html body to get maximum specificity */
+html body.dashboard-cursor-active,
+html body.dashboard-cursor-active *,
+html body.dashboard-cursor-active *:hover,
+html body.dashboard-cursor-active *:focus,
+html body.dashboard-cursor-active *:active,
+html body.dashboard-cursor-active .broke-page *,
+html body.dashboard-cursor-active .broke-page *:hover {
+  cursor: none !important;
+}
+
+/* Fallback for touch devices */
+@media (pointer: coarse) {
+  body.dashboard-cursor-active,
+  body.dashboard-cursor-active * {
+    cursor: auto !important;
+  }
+}
+
+/* Recharts cursor override - target SVG elements directly */
+body.dashboard-cursor-active .recharts-wrapper,
+body.dashboard-cursor-active .recharts-surface,
+body.dashboard-cursor-active .recharts-surface *,
+body.dashboard-cursor-active .recharts-cartesian-axis-tick,
+body.dashboard-cursor-active .recharts-cartesian-axis-tick text,
+body.dashboard-cursor-active .recharts-tooltip-wrapper,
+body.dashboard-cursor-active .recharts-active-dot,
+body.dashboard-cursor-active .recharts-area,
+body.dashboard-cursor-active .recharts-bar,
+body.dashboard-cursor-active .recharts-scatter,
+body.dashboard-cursor-active svg,
+body.dashboard-cursor-active svg *,
+body.dashboard-cursor-active path,
+body.dashboard-cursor-active rect,
+body.dashboard-cursor-active circle,
+body.dashboard-cursor-active text {
+  cursor: none !important;
+  pointer-events: auto;
+}
+
+/* Force pointer-events on the container but cursor none on children */
+body.dashboard-cursor-active .broke-dash-chart,
+body.dashboard-cursor-active .broke-dash-chart-tall {
+  cursor: none !important;
+}
+
+body.dashboard-cursor-active .broke-dash-chart *,
+body.dashboard-cursor-active .broke-dash-chart-tall * {
+  cursor: none !important;
+}
+
+/* Override inline cursor styles set by Recharts */
+body.dashboard-cursor-active [style*="cursor"],
+body.dashboard-cursor-active svg[style*="cursor"],
+body.dashboard-cursor-active svg *[style*="cursor"],
+body.dashboard-cursor-active .recharts-wrapper [style*="cursor"],
+body.dashboard-cursor-active .recharts-surface [style*="cursor"] {
+  cursor: none !important;
+}
+
+/* Dashboard Header */
+.broke-dashboard-header {
+  position: sticky;
+  top: 80px;
+  z-index: 30;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--dash-border);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media screen and (min-width: 1440px) {
+  .broke-dashboard-header {
+    top: 100px;
+  }
+}
+
+.broke-dashboard-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.broke-dashboard-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dash-foreground);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.broke-dashboard-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Dashboard Content */
+.broke-dashboard-content {
+  padding: 1.5rem;
+  padding-bottom: 6rem;
+}
+
+/* Cards */
+.broke-dash-card {
+  background: linear-gradient(135deg, var(--dash-card-start) 0%, var(--dash-card-end) 100%);
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.broke-dash-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.broke-dash-card.accent-left {
+  border-left: 3px solid var(--dash-accent);
+}
+
+/* Stat Cards */
+.broke-dash-stat-card {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.broke-dash-stat-value {
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--dash-accent);
+  font-family: 'Galderglynn', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px var(--dash-accent-glow);
+}
+
+.broke-dash-stat-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Badges */
+.broke-dash-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.broke-dash-badge-tiktok {
+  background: rgba(0, 242, 234, 0.15);
+  color: var(--dash-tiktok);
+  border: 1px solid rgba(0, 242, 234, 0.3);
+}
+
+.broke-dash-badge-instagram {
+  background: rgba(225, 48, 108, 0.15);
+  color: var(--dash-instagram);
+  border: 1px solid rgba(225, 48, 108, 0.3);
+}
+
+.broke-dash-badge-twitter {
+  background: rgba(29, 161, 242, 0.15);
+  color: var(--dash-twitter);
+  border: 1px solid rgba(29, 161, 242, 0.3);
+}
+
+/* Growth Badges */
+.broke-dash-growth {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.broke-dash-growth-positive {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--dash-positive);
+}
+
+.broke-dash-growth-negative {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--dash-negative);
+}
+
+/* Live Indicator */
+.broke-dash-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+.broke-dash-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #EF4444;
+}
+
+.broke-dash-live-dot.pulse {
+  animation: broke-dash-pulse 2s ease-in-out infinite;
+}
+
+@keyframes broke-dash-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Form Elements */
+.broke-dash-input {
+  width: 100%;
+  padding: 0.625rem 2.5rem 0.625rem 2.5rem;
+  background: var(--dash-background);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--dash-foreground);
+  transition: border-color 0.2s ease;
+}
+
+.broke-dash-input::placeholder {
+  color: var(--dash-muted);
+}
+
+.broke-dash-input:focus {
+  outline: none;
+  border-color: rgba(255, 214, 0, 0.5);
+}
+
+.broke-dash-select {
+  padding: 0.375rem 0.75rem;
+  background: var(--dash-card-start);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--dash-foreground);
+  transition: border-color 0.2s ease;
+}
+
+.broke-dash-select:focus {
+  outline: none;
+  border-color: var(--dash-accent);
+}
+
+/* Buttons */
+.broke-dash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.broke-dash-btn-accent {
+  background: rgba(255, 214, 0, 0.1);
+  border: 1px solid rgba(255, 214, 0, 0.3);
+  color: var(--dash-accent);
+}
+
+.broke-dash-btn-accent:hover {
+  background: rgba(255, 214, 0, 0.2);
+}
+
+.broke-dash-btn-accent:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tables */
+.broke-dash-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.broke-dash-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.broke-dash-table th.sortable {
+  transition: color 0.2s ease;
+}
+
+.broke-dash-table th.sortable:hover {
+  color: var(--dash-accent);
+}
+
+.broke-dash-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.broke-dash-table tr {
+  transition: background 0.2s ease;
+}
+
+.broke-dash-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Spinner */
+.broke-dash-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--dash-border);
+  border-top-color: var(--dash-accent);
+  border-radius: 50%;
+  animation: broke-dash-spin 1s linear infinite;
+}
+
+@keyframes broke-dash-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dropdown */
+.broke-dash-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 16rem;
+  background: #1A1A1A;
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.broke-dash-dropdown-section {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.broke-dash-dropdown-section:last-child {
+  border-bottom: none;
+}
+
+.broke-dash-dropdown-label {
+  font-size: 0.65rem;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.5rem;
+}
+
+/* Platform Filter Buttons */
+.broke-dash-platform-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.broke-dash-platform-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--dash-border);
+  background: transparent;
+  color: var(--dash-muted);
+  transition: all 0.2s ease;
+}
+
+.broke-dash-platform-btn:hover {
+  color: var(--dash-foreground);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.broke-dash-platform-btn.active {
+  border-color: transparent;
+}
+
+/* Chart Container */
+.broke-dash-chart {
+  height: 280px;
+}
+
+.broke-dash-chart-tall {
+  height: 400px;
+}
+
+/* Grid Layouts */
+.broke-dash-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.broke-dash-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.broke-dash-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1280px) {
+  .broke-dash-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .broke-dash-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .broke-dash-grid-4,
+  .broke-dash-grid-3,
+  .broke-dash-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Span Utilities */
+.broke-dash-col-span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .broke-dash-col-span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* Rank Badge */
+.broke-dash-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Mobile Dashboard Nav Toggle */
+.broke-dash-mobile-toggle {
+  display: none;
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 50;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--dash-accent);
+  color: var(--dash-background);
+  border: none;
+  box-shadow: 0 4px 12px rgba(255, 214, 0, 0.3);
+}
+
+@media (max-width: 1024px) {
+  .broke-dash-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Password Gate */
+.broke-dash-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dash-background);
+}
+
+.broke-dash-gate-box {
+  background: linear-gradient(135deg, var(--dash-card-start) 0%, var(--dash-card-end) 100%);
+  border: 1px solid var(--dash-border);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 1rem;
+}
+
+.broke-dash-gate h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--dash-foreground);
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.broke-dash-gate p {
+  font-size: 0.875rem;
+  color: var(--dash-muted);
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+}
+
+.broke-dash-gate input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--dash-background);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: var(--dash-foreground);
+  margin-bottom: 1rem;
+}
+
+.broke-dash-gate input:focus {
+  outline: none;
+  border-color: var(--dash-accent);
+}
+
+.broke-dash-gate button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--dash-accent);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--dash-background);
+  transition: opacity 0.2s ease;
+}
+
+.broke-dash-gate button:hover {
+  opacity: 0.9;
+}
+
+.broke-dash-gate-error {
+  color: var(--dash-negative);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Yellow Glow Text */
+.broke-dash-glow {
+  text-shadow: 0 0 30px var(--dash-accent-glow);
+}
+
+/* FINAL CURSOR OVERRIDE - At end of file for highest cascade priority */
+html body.dashboard-cursor-active,
+html body.dashboard-cursor-active *,
+html body.dashboard-cursor-active *:hover,
+html body.dashboard-cursor-active *:focus,
+html body.dashboard-cursor-active *:active,
+html body.dashboard-cursor-active table,
+html body.dashboard-cursor-active table *,
+html body.dashboard-cursor-active tbody,
+html body.dashboard-cursor-active tbody *,
+html body.dashboard-cursor-active tr,
+html body.dashboard-cursor-active tr *,
+html body.dashboard-cursor-active tr:hover,
+html body.dashboard-cursor-active tr:hover *,
+html body.dashboard-cursor-active td,
+html body.dashboard-cursor-active td *,
+html body.dashboard-cursor-active th,
+html body.dashboard-cursor-active th *,
+html body.dashboard-cursor-active .broke-dash-table,
+html body.dashboard-cursor-active .broke-dash-table *,
+html body.dashboard-cursor-active .broke-dash-table tr:hover,
+html body.dashboard-cursor-active .broke-dash-table tr:hover * {
+  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') 0 0, none !important;
+}

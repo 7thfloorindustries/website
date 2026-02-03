@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import MagneticElement from "./MagneticElement";
 
 interface FloatingNavProps {
@@ -18,6 +20,8 @@ export default function FloatingNav({
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrollingDown, setIsScrollingDown] = useState(true);
   const { scrollY, scrollYProgress } = useScroll();
+  const pathname = usePathname();
+  const isBrokePage = pathname?.startsWith("/broke");
 
   useMotionValueEvent(scrollY, "change", (current) => {
     const diff = current - lastScrollY;
@@ -57,10 +61,20 @@ export default function FloatingNav({
             {/* Logo link */}
             <MagneticElement strength={0.2} radius={40}>
               <Link
-                href="/"
-                className="px-4 py-2 text-sm font-semibold text-white hover:text-[#C4A35A] transition-colors duration-300"
+                href={isBrokePage ? "/broke" : "/"}
+                className="px-4 py-2 text-sm font-semibold text-white hover:text-[#C4A35A] transition-colors duration-300 flex items-center"
               >
-                7F
+                {isBrokePage ? (
+                  <Image
+                    src="/broke/logo.svg"
+                    alt="BROKE"
+                    width={24}
+                    height={25}
+                    className="hover:brightness-110 transition-all"
+                  />
+                ) : (
+                  "7F"
+                )}
               </Link>
             </MagneticElement>
 
