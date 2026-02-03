@@ -356,20 +356,35 @@ function calculateDeltas(
     return {};
   }
 
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  // Sort history by date descending to get the latest record
+  const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const latestRecord = sorted[0];
+
+  // Use the latest record's timestamp as reference, not current browser time
+  // This ensures consistent calculations regardless of when the user views the dashboard
+  const latestDate = latestRecord.date;
+  const oneDayAgo = new Date(latestDate.getTime() - 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   let delta1d: number | undefined;
-  const record1d = findClosestRecord(history, oneDayAgo, 24 * 60 * 60 * 1000);
-  if (record1d) {
+  // Use 12 hour tolerance for 1D - accounts for slight timing variations in daily scrapes
+  const record1d = findClosestRecord(history, oneDayAgo, 12 * 60 * 60 * 1000);
+  // Ensure we found a different record than the latest
+  if (record1d && record1d.date.getTime() !== latestRecord.date.getTime()) {
     delta1d = currentFollowers - record1d.followers;
   }
 
   let delta7d: number | undefined;
-  const record7d = findClosestRecord(history, sevenDaysAgo, 2 * 24 * 60 * 60 * 1000);
-  if (record7d) {
-    delta7d = currentFollowers - record7d.followers;
+  // Use 24 hour tolerance for 7D - must be close to actual 7 days ago
+  const record7d = findClosestRecord(history, sevenDaysAgo, 24 * 60 * 60 * 1000);
+  // Ensure we found a different record and it's actually from around 7 days ago
+  // (not just a recent record within tolerance)
+  if (record7d && record7d.date.getTime() !== latestRecord.date.getTime()) {
+    // Verify the record is at least 5 days old to avoid showing misleading 7D data
+    const daysDiff = (latestDate.getTime() - record7d.date.getTime()) / (24 * 60 * 60 * 1000);
+    if (daysDiff >= 5) {
+      delta7d = currentFollowers - record7d.followers;
+    }
   }
 
   return { delta1d, delta7d };
