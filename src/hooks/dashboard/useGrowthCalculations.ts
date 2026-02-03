@@ -129,10 +129,16 @@ export function useGrowthCalculations(
       if (record.tiktok) {
         const prevFollowers = record.tiktok.followers - record.tiktok.deltaFollowers;
         const growthPercent = prevFollowers > 0 ? (record.tiktok.deltaFollowers / prevFollowers) * 100 : 0;
-        const engagementRate = record.tiktok.followers > 0 && record.tiktok.deltaLikes
-          ? (record.tiktok.deltaLikes / record.tiktok.followers) * 100
+        // Engagement rate: average likes per video as % of followers
+        // This measures how engaged followers are with content
+        const videos = record.tiktok.videos ?? 0;
+        const likes = record.tiktok.likes ?? 0;
+        const avgLikesPerVideo = videos > 0 ? likes / videos : 0;
+        const engagementRate = record.tiktok.followers > 0 && avgLikesPerVideo > 0
+          ? (avgLikesPerVideo / record.tiktok.followers) * 100
           : undefined;
-        const conversionRate = record.tiktok.deltaLikes && record.tiktok.deltaLikes > 0
+        // Conversion rate: follower growth per like gained (how well likes convert to follows)
+        const conversionRate = record.tiktok.deltaLikes && record.tiktok.deltaLikes > 0 && record.tiktok.deltaFollowers > 0
           ? (record.tiktok.deltaFollowers / record.tiktok.deltaLikes) * 100
           : undefined;
         const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
