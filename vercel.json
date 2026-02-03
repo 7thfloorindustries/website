@@ -4,5 +4,27 @@
       "path": "/api/cron/snapshot",
       "schedule": "0 0 * * *"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "brokedown.app"
+        }
+      ],
+      "destination": "/broke/:path*"
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "brokedown.app"
+        }
+      ],
+      "destination": "/broke"
+    }
   ]
 }
