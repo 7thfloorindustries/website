@@ -7,6 +7,18 @@ import BrokeCursor from '@/components/broke/BrokeCursor';
 export const metadata = {
   title: 'BROKE',
   description: 'BROKE is an independent record label founded in New York City, empowering culturally impactful artists through innovative marketing and storytelling.',
+  openGraph: {
+    title: 'BROKE',
+    description: 'Independent record label founded in NYC, empowering culturally impactful artists.',
+    url: 'https://brokedown.app',
+    siteName: 'BROKE',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BROKE',
+    description: 'Independent record label founded in NYC, empowering culturally impactful artists.',
+  },
 };
 
 export default function BrokeLayout({
