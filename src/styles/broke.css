@@ -413,7 +413,7 @@
   padding: 0 calc(var(--broke-content-padding) + 5px);
   max-width: 1440px;
   width: 100%;
-  padding-top: 120px;
+  padding-top: 150px;
   gap: 25px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
