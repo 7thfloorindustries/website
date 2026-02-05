@@ -171,16 +171,27 @@ export default function OverviewPage() {
           <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--dash-foreground)', marginBottom: '1rem' }}>
             Top Performers ({dateLabel})
           </h2>
-          <div className="broke-dash-grid-3">
-            {topPerformers.map((performer, index) => (
-              <TopPerformerCard
-                key={`${performer.handle}-${performer.platform}`}
-                performer={performer}
-                rank={index + 1}
-                delay={0.5 + index * 0.1}
-              />
-            ))}
-          </div>
+          {topPerformers.length > 0 ? (
+            <div className="broke-dash-grid-3">
+              {topPerformers.map((performer, index) => (
+                <TopPerformerCard
+                  key={`${performer.handle}-${performer.platform}`}
+                  performer={performer}
+                  rank={index + 1}
+                  delay={0.5 + index * 0.1}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="broke-dash-card" style={{ padding: '2rem', textAlign: 'center' }}>
+              <div style={{ color: 'var(--dash-muted)', marginBottom: '0.5rem' }}>
+                No growth data yet
+              </div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--dash-muted)', opacity: 0.7 }}>
+                Top performers will appear here after the next daily scrape captures follower changes
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
     </>

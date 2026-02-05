@@ -12,6 +12,9 @@ export interface PlatformMetrics {
   deltaLikes?: number;
   videos?: number;
   deltaVideos?: number;
+  // Pre-calculated deltas from database (when available)
+  delta1d?: number;
+  delta7d?: number;
   // Calculated fields
   engagementRate?: number;
 }

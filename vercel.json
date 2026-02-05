@@ -3,9 +3,33 @@
     {
       "path": "/api/cron/snapshot",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/scrape",
+      "schedule": "0 6 * * *"
     }
   ],
   "rewrites": [
+    {
+      "source": "/broke/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "brokedown.app"
+        }
+      ],
+      "destination": "/broke/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "brokedown.app"
+        }
+      ],
+      "destination": "/api/:path*"
+    },
     {
       "source": "/:path*",
       "has": [

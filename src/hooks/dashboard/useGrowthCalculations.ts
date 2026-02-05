@@ -130,27 +130,33 @@ export function useGrowthCalculations(
         const prevFollowers = record.tiktok.followers - record.tiktok.deltaFollowers;
         const growthPercent = prevFollowers > 0 ? (record.tiktok.deltaFollowers / prevFollowers) * 100 : 0;
         // Engagement rate: average likes per video as % of followers
-        // This measures how engaged followers are with content
         const videos = record.tiktok.videos ?? 0;
         const likes = record.tiktok.likes ?? 0;
         const avgLikesPerVideo = videos > 0 ? likes / videos : 0;
         const engagementRate = record.tiktok.followers > 0 && avgLikesPerVideo > 0
           ? (avgLikesPerVideo / record.tiktok.followers) * 100
           : undefined;
-        // Conversion rate: follower growth per like gained (how well likes convert to follows)
-        const conversionRate = record.tiktok.deltaLikes && record.tiktok.deltaLikes > 0 && record.tiktok.deltaFollowers > 0
-          ? (record.tiktok.deltaFollowers / record.tiktok.deltaLikes) * 100
+        // Conversion rate: total followers / total likes (what % of likers are followers)
+        const conversionRate = likes > 0
+          ? (record.tiktok.followers / likes) * 100
           : undefined;
         const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
-        const { delta1d, delta7d } = calculateDeltas(history, record.tiktok.followers);
+
+        // Use pre-calculated deltas from API if available, otherwise compute client-side
+        const apiDelta1d = record.tiktok.delta1d;
+        const apiDelta7d = record.tiktok.delta7d;
+        const computedDeltas = (apiDelta1d === undefined || apiDelta7d === undefined)
+          ? calculateDeltas(history, record.tiktok.followers)
+          : { delta1d: undefined, delta7d: undefined };
+
         entries.push({
           rank: 0,
           handle: record.tiktok.handle,
           platform: 'tiktok' as Platform,
           followers: record.tiktok.followers,
           deltaFollowers: record.tiktok.deltaFollowers,
-          delta1d,
-          delta7d,
+          delta1d: apiDelta1d ?? computedDeltas.delta1d,
+          delta7d: apiDelta7d ?? computedDeltas.delta7d,
           growthPercent,
           postsLast7d: record.tiktok.postsLast7d,
           deltaPosts: record.tiktok.deltaPosts,
@@ -166,15 +172,22 @@ export function useGrowthCalculations(
         const prevFollowers = record.instagram.followers - record.instagram.deltaFollowers;
         const growthPercent = prevFollowers > 0 ? (record.instagram.deltaFollowers / prevFollowers) * 100 : 0;
         const history = getFollowerHistory(filteredRecords, record.instagram.handle, 'instagram');
-        const { delta1d, delta7d } = calculateDeltas(history, record.instagram.followers);
+
+        // Use pre-calculated deltas from API if available
+        const apiDelta1d = record.instagram.delta1d;
+        const apiDelta7d = record.instagram.delta7d;
+        const computedDeltas = (apiDelta1d === undefined || apiDelta7d === undefined)
+          ? calculateDeltas(history, record.instagram.followers)
+          : { delta1d: undefined, delta7d: undefined };
+
         entries.push({
           rank: 0,
           handle: record.instagram.handle,
           platform: 'instagram' as Platform,
           followers: record.instagram.followers,
           deltaFollowers: record.instagram.deltaFollowers,
-          delta1d,
-          delta7d,
+          delta1d: apiDelta1d ?? computedDeltas.delta1d,
+          delta7d: apiDelta7d ?? computedDeltas.delta7d,
           growthPercent,
           postsLast7d: record.instagram.postsLast7d,
           deltaPosts: record.instagram.deltaPosts,
@@ -187,15 +200,22 @@ export function useGrowthCalculations(
         const prevFollowers = record.twitter.followers - record.twitter.deltaFollowers;
         const growthPercent = prevFollowers > 0 ? (record.twitter.deltaFollowers / prevFollowers) * 100 : 0;
         const history = getFollowerHistory(filteredRecords, record.twitter.handle, 'twitter');
-        const { delta1d, delta7d } = calculateDeltas(history, record.twitter.followers);
+
+        // Use pre-calculated deltas from API if available
+        const apiDelta1d = record.twitter.delta1d;
+        const apiDelta7d = record.twitter.delta7d;
+        const computedDeltas = (apiDelta1d === undefined || apiDelta7d === undefined)
+          ? calculateDeltas(history, record.twitter.followers)
+          : { delta1d: undefined, delta7d: undefined };
+
         entries.push({
           rank: 0,
           handle: record.twitter.handle,
           platform: 'twitter' as Platform,
           followers: record.twitter.followers,
           deltaFollowers: record.twitter.deltaFollowers,
-          delta1d,
-          delta7d,
+          delta1d: apiDelta1d ?? computedDeltas.delta1d,
+          delta7d: apiDelta7d ?? computedDeltas.delta7d,
           growthPercent,
           postsLast7d: record.twitter.postsLast7d,
           deltaPosts: record.twitter.deltaPosts,
@@ -311,17 +331,19 @@ function getLatestRecordsByCreator(records: CreatorRecord[]): CreatorRecord[] {
   const creatorMap = new Map<string, CreatorRecord>();
 
   for (const record of records) {
-    const handles = [
-      record.tiktok?.handle,
-      record.instagram?.handle,
-      record.twitter?.handle,
-    ].filter(Boolean).join('|');
+    // Build a unique key that includes platform to avoid collisions
+    // when the same handle exists on multiple platforms
+    const platforms: string[] = [];
+    if (record.tiktok?.handle) platforms.push(`tiktok:${record.tiktok.handle}`);
+    if (record.instagram?.handle) platforms.push(`instagram:${record.instagram.handle}`);
+    if (record.twitter?.handle) platforms.push(`twitter:${record.twitter.handle}`);
 
-    if (!handles) continue;
+    const key = platforms.sort().join('|');
+    if (!key) continue;
 
-    const existing = creatorMap.get(handles);
+    const existing = creatorMap.get(key);
     if (!existing || record.timestamp > existing.timestamp) {
-      creatorMap.set(handles, record);
+      creatorMap.set(key, record);
     }
   }
 
@@ -360,51 +382,34 @@ function calculateDeltas(
   const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
   const latestRecord = sorted[0];
 
-  // Use the latest record's timestamp as reference, not current browser time
-  // This ensures consistent calculations regardless of when the user views the dashboard
-  const latestDate = latestRecord.date;
-  const oneDayAgo = new Date(latestDate.getTime() - 24 * 60 * 60 * 1000);
-  const sevenDaysAgo = new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-
   let delta1d: number | undefined;
-  // Use 12 hour tolerance for 1D - accounts for slight timing variations in daily scrapes
-  const record1d = findClosestRecord(history, oneDayAgo, 12 * 60 * 60 * 1000);
-  // Ensure we found a different record than the latest
-  if (record1d && record1d.date.getTime() !== latestRecord.date.getTime()) {
+  // Find previous record at least 6 hours old (captures "previous day" even with variable scrape timing)
+  const record1d = findPreviousRecord(history, latestRecord, 6 * 60 * 60 * 1000);
+  if (record1d) {
     delta1d = currentFollowers - record1d.followers;
   }
 
   let delta7d: number | undefined;
-  // Use 24 hour tolerance for 7D - must be close to actual 7 days ago
-  const record7d = findClosestRecord(history, sevenDaysAgo, 24 * 60 * 60 * 1000);
-  // Ensure we found a different record and it's actually from around 7 days ago
-  // (not just a recent record within tolerance)
-  if (record7d && record7d.date.getTime() !== latestRecord.date.getTime()) {
-    // Verify the record is at least 5 days old to avoid showing misleading 7D data
-    const daysDiff = (latestDate.getTime() - record7d.date.getTime()) / (24 * 60 * 60 * 1000);
-    if (daysDiff >= 5) {
-      delta7d = currentFollowers - record7d.followers;
-    }
+  // Find record at least 5 days old for 7D calculation
+  const record7d = findPreviousRecord(history, latestRecord, 5 * 24 * 60 * 60 * 1000);
+  if (record7d) {
+    delta7d = currentFollowers - record7d.followers;
   }
 
   return { delta1d, delta7d };
 }
 
-function findClosestRecord(
+function findPreviousRecord(
   history: { date: Date; followers: number }[],
-  targetDate: Date,
-  maxDiffMs: number
+  latestRecord: { date: Date; followers: number },
+  minAgeMs: number
 ): { date: Date; followers: number } | null {
-  let closest: { date: Date; followers: number } | null = null;
-  let closestDiff = Infinity;
+  const cutoff = latestRecord.date.getTime() - minAgeMs;
 
-  for (const record of history) {
-    const diff = Math.abs(record.date.getTime() - targetDate.getTime());
-    if (diff < closestDiff && diff <= maxDiffMs) {
-      closestDiff = diff;
-      closest = record;
-    }
-  }
+  // Find records older than cutoff, sorted newest first
+  const candidates = history
+    .filter(r => r.date.getTime() < cutoff)
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  return closest;
+  return candidates[0] || null;
 }
