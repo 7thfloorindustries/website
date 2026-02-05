@@ -15,7 +15,7 @@ interface LeaderboardTableProps {
   onSelectionChange?: (handle: string, platform: Platform, selected: boolean) => void;
 }
 
-type SortKey = 'rank' | 'followers' | 'delta1d' | 'delta7d' | 'deltaFollowers' | 'growthPercent' | 'postsLast7d' | 'engagementRate' | 'conversionRate';
+type SortKey = 'rank' | 'followers' | 'delta1d' | 'delta7d' | 'deltaFollowers' | 'growthPercent' | 'deltaPosts' | 'postsLast7d' | 'engagementRate' | 'conversionRate';
 type SortDirection = 'asc' | 'desc';
 
 export default function LeaderboardTable({
@@ -115,6 +115,14 @@ export default function LeaderboardTable({
               >
                 7D %
                 <SortIcon active={sortKey === 'growthPercent'} direction={sortDirection} />
+              </th>
+              <th
+                className="sortable"
+                style={{ textAlign: 'right' }}
+                onClick={() => handleSort('deltaPosts')}
+              >
+                Posts (1d)
+                <SortIcon active={sortKey === 'deltaPosts'} direction={sortDirection} />
               </th>
               <th
                 className="sortable"
@@ -262,6 +270,18 @@ export default function LeaderboardTable({
                       }}
                     >
                       {formatPercent(entry.growthPercent)}
+                    </span>
+                  </td>
+
+                  <td style={{ textAlign: 'right' }}>
+                    <span
+                      style={{
+                        fontSize: '0.875rem',
+                        fontFamily: 'monospace',
+                        color: entry.deltaPosts > 0 ? 'var(--dash-positive)' : 'var(--dash-muted)',
+                      }}
+                    >
+                      {entry.deltaPosts > 0 ? `+${entry.deltaPosts}` : entry.deltaPosts || '0'}
                     </span>
                   </td>
 
