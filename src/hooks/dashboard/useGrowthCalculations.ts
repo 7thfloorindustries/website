@@ -33,7 +33,7 @@ export function useGrowthCalculations(
     const latestRecords = getLatestRecordsByCreator(filteredRecords);
 
     let totalFollowers = 0;
-    let totalGrowth = 0;
+    let totalRangeGrowth = 0;
     const activeCreators = new Set<string>();
 
     const byPlatform = {
@@ -44,28 +44,34 @@ export function useGrowthCalculations(
 
     for (const record of latestRecords) {
       if (record.tiktok) {
+        const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
+        const { growth } = calculateRangeGrowth(history, record.tiktok.followers);
         totalFollowers += record.tiktok.followers;
-        totalGrowth += record.tiktok.deltaFollowers;
+        totalRangeGrowth += growth;
         byPlatform.tiktok.followers += record.tiktok.followers;
-        byPlatform.tiktok.growth += record.tiktok.deltaFollowers;
+        byPlatform.tiktok.growth += growth;
         byPlatform.tiktok.creators++;
         activeCreators.add(record.tiktok.handle);
       }
 
       if (record.instagram) {
+        const history = getFollowerHistory(filteredRecords, record.instagram.handle, 'instagram');
+        const { growth } = calculateRangeGrowth(history, record.instagram.followers);
         totalFollowers += record.instagram.followers;
-        totalGrowth += record.instagram.deltaFollowers;
+        totalRangeGrowth += growth;
         byPlatform.instagram.followers += record.instagram.followers;
-        byPlatform.instagram.growth += record.instagram.deltaFollowers;
+        byPlatform.instagram.growth += growth;
         byPlatform.instagram.creators++;
         activeCreators.add(record.instagram.handle);
       }
 
       if (record.twitter) {
+        const history = getFollowerHistory(filteredRecords, record.twitter.handle, 'twitter');
+        const { growth } = calculateRangeGrowth(history, record.twitter.followers);
         totalFollowers += record.twitter.followers;
-        totalGrowth += record.twitter.deltaFollowers;
+        totalRangeGrowth += growth;
         byPlatform.twitter.followers += record.twitter.followers;
-        byPlatform.twitter.growth += record.twitter.deltaFollowers;
+        byPlatform.twitter.growth += growth;
         byPlatform.twitter.creators++;
         activeCreators.add(record.twitter.handle);
       }
@@ -73,7 +79,8 @@ export function useGrowthCalculations(
 
     return {
       totalFollowers,
-      totalGrowth7d: totalGrowth,
+      rangeGrowth: totalRangeGrowth,
+      totalGrowth7d: totalRangeGrowth,
       activeCreators: activeCreators.size,
       byPlatform,
     };
@@ -84,37 +91,46 @@ export function useGrowthCalculations(
     const performers: TopPerformer[] = [];
 
     for (const record of latestRecords) {
-      if (record.tiktok && record.tiktok.deltaFollowers > 0) {
-        const prevFollowers = record.tiktok.followers - record.tiktok.deltaFollowers;
-        performers.push({
-          handle: record.tiktok.handle,
-          platform: 'tiktok',
-          followers: record.tiktok.followers,
-          growth: record.tiktok.deltaFollowers,
-          growthPercent: prevFollowers > 0 ? (record.tiktok.deltaFollowers / prevFollowers) * 100 : 0,
-        });
+      if (record.tiktok) {
+        const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
+        const { growth, growthPercent } = calculateRangeGrowth(history, record.tiktok.followers);
+        if (growth > 0) {
+          performers.push({
+            handle: record.tiktok.handle,
+            platform: 'tiktok',
+            followers: record.tiktok.followers,
+            growth,
+            growthPercent,
+          });
+        }
       }
 
-      if (record.instagram && record.instagram.deltaFollowers > 0) {
-        const prevFollowers = record.instagram.followers - record.instagram.deltaFollowers;
-        performers.push({
-          handle: record.instagram.handle,
-          platform: 'instagram',
-          followers: record.instagram.followers,
-          growth: record.instagram.deltaFollowers,
-          growthPercent: prevFollowers > 0 ? (record.instagram.deltaFollowers / prevFollowers) * 100 : 0,
-        });
+      if (record.instagram) {
+        const history = getFollowerHistory(filteredRecords, record.instagram.handle, 'instagram');
+        const { growth, growthPercent } = calculateRangeGrowth(history, record.instagram.followers);
+        if (growth > 0) {
+          performers.push({
+            handle: record.instagram.handle,
+            platform: 'instagram',
+            followers: record.instagram.followers,
+            growth,
+            growthPercent,
+          });
+        }
       }
 
-      if (record.twitter && record.twitter.deltaFollowers > 0) {
-        const prevFollowers = record.twitter.followers - record.twitter.deltaFollowers;
-        performers.push({
-          handle: record.twitter.handle,
-          platform: 'twitter',
-          followers: record.twitter.followers,
-          growth: record.twitter.deltaFollowers,
-          growthPercent: prevFollowers > 0 ? (record.twitter.deltaFollowers / prevFollowers) * 100 : 0,
-        });
+      if (record.twitter) {
+        const history = getFollowerHistory(filteredRecords, record.twitter.handle, 'twitter');
+        const { growth, growthPercent } = calculateRangeGrowth(history, record.twitter.followers);
+        if (growth > 0) {
+          performers.push({
+            handle: record.twitter.handle,
+            platform: 'twitter',
+            followers: record.twitter.followers,
+            growth,
+            growthPercent,
+          });
+        }
       }
     }
 
@@ -127,8 +143,8 @@ export function useGrowthCalculations(
 
     for (const record of latestRecords) {
       if (record.tiktok) {
-        const prevFollowers = record.tiktok.followers - record.tiktok.deltaFollowers;
-        const growthPercent = prevFollowers > 0 ? (record.tiktok.deltaFollowers / prevFollowers) * 100 : 0;
+        const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
+        const range = calculateRangeGrowth(history, record.tiktok.followers);
         // Engagement rate: average likes per video as % of followers
         const videos = record.tiktok.videos ?? 0;
         const likes = record.tiktok.likes ?? 0;
@@ -140,7 +156,6 @@ export function useGrowthCalculations(
         const conversionRate = likes > 0
           ? (record.tiktok.followers / likes) * 100
           : undefined;
-        const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
 
         // Use pre-calculated deltas from API if available, otherwise compute client-side
         const apiDelta1d = record.tiktok.delta1d;
@@ -154,10 +169,10 @@ export function useGrowthCalculations(
           handle: record.tiktok.handle,
           platform: 'tiktok' as Platform,
           followers: record.tiktok.followers,
-          deltaFollowers: record.tiktok.deltaFollowers,
+          deltaFollowers: range.growth,
           delta1d: apiDelta1d ?? computedDeltas.delta1d,
           delta7d: apiDelta7d ?? computedDeltas.delta7d,
-          growthPercent,
+          growthPercent: range.growthPercent,
           postsLast7d: record.tiktok.postsLast7d,
           deltaPosts: record.tiktok.deltaPosts,
           deltaLikes: record.tiktok.deltaLikes,
@@ -169,9 +184,8 @@ export function useGrowthCalculations(
       }
 
       if (record.instagram) {
-        const prevFollowers = record.instagram.followers - record.instagram.deltaFollowers;
-        const growthPercent = prevFollowers > 0 ? (record.instagram.deltaFollowers / prevFollowers) * 100 : 0;
         const history = getFollowerHistory(filteredRecords, record.instagram.handle, 'instagram');
+        const range = calculateRangeGrowth(history, record.instagram.followers);
 
         // Use pre-calculated deltas from API if available
         const apiDelta1d = record.instagram.delta1d;
@@ -185,10 +199,10 @@ export function useGrowthCalculations(
           handle: record.instagram.handle,
           platform: 'instagram' as Platform,
           followers: record.instagram.followers,
-          deltaFollowers: record.instagram.deltaFollowers,
+          deltaFollowers: range.growth,
           delta1d: apiDelta1d ?? computedDeltas.delta1d,
           delta7d: apiDelta7d ?? computedDeltas.delta7d,
-          growthPercent,
+          growthPercent: range.growthPercent,
           postsLast7d: record.instagram.postsLast7d,
           deltaPosts: record.instagram.deltaPosts,
           history,
@@ -197,9 +211,8 @@ export function useGrowthCalculations(
       }
 
       if (record.twitter) {
-        const prevFollowers = record.twitter.followers - record.twitter.deltaFollowers;
-        const growthPercent = prevFollowers > 0 ? (record.twitter.deltaFollowers / prevFollowers) * 100 : 0;
         const history = getFollowerHistory(filteredRecords, record.twitter.handle, 'twitter');
+        const range = calculateRangeGrowth(history, record.twitter.followers);
 
         // Use pre-calculated deltas from API if available
         const apiDelta1d = record.twitter.delta1d;
@@ -213,10 +226,10 @@ export function useGrowthCalculations(
           handle: record.twitter.handle,
           platform: 'twitter' as Platform,
           followers: record.twitter.followers,
-          deltaFollowers: record.twitter.deltaFollowers,
+          deltaFollowers: range.growth,
           delta1d: apiDelta1d ?? computedDeltas.delta1d,
           delta7d: apiDelta7d ?? computedDeltas.delta7d,
-          growthPercent,
+          growthPercent: range.growthPercent,
           postsLast7d: record.twitter.postsLast7d,
           deltaPosts: record.twitter.deltaPosts,
           history,
@@ -234,78 +247,54 @@ export function useGrowthCalculations(
   }, [filteredRecords]);
 
   const growthTrendData = useMemo(() => {
-    const dateMap = new Map<string, { date: Date; tiktok: number; instagram: number; twitter: number; total: number }>();
-
-    for (const record of filteredRecords) {
-      const dateKey = record.timestamp.toISOString().split('T')[0];
-
-      if (!dateMap.has(dateKey)) {
-        dateMap.set(dateKey, {
-          date: new Date(dateKey),
-          tiktok: 0,
-          instagram: 0,
-          twitter: 0,
-          total: 0,
-        });
-      }
-
-      const entry = dateMap.get(dateKey)!;
-
-      if (record.tiktok) {
-        entry.tiktok += record.tiktok.followers;
-        entry.total += record.tiktok.followers;
-      }
-      if (record.instagram) {
-        entry.instagram += record.instagram.followers;
-        entry.total += record.instagram.followers;
-      }
-      if (record.twitter) {
-        entry.twitter += record.twitter.followers;
-        entry.total += record.twitter.followers;
-      }
-    }
-
-    return Array.from(dateMap.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+    return buildGrowthTrendData(filteredRecords);
   }, [filteredRecords]);
 
   const repStats = useMemo<RepStats[]>(() => {
-    const latestRecords = getLatestRecordsByCreator(dateFilteredRecords);
-    const repMap = new Map<string, { followers: number; growth: number; count: number; prevFollowers: number }>();
+    const latestRecords = getLatestRecordsByCreator(filteredRecords);
+    const repMap = new Map<string, { followers: number; growth: number; count: number; baselineFollowers: number }>();
 
     for (const record of latestRecords) {
       const rep = record.marketingRep || 'Unassigned';
       if (!repMap.has(rep)) {
-        repMap.set(rep, { followers: 0, growth: 0, count: 0, prevFollowers: 0 });
+        repMap.set(rep, { followers: 0, growth: 0, count: 0, baselineFollowers: 0 });
       }
       const stats = repMap.get(rep)!;
 
       stats.count++;
 
       if (record.tiktok) {
+        const history = getFollowerHistory(filteredRecords, record.tiktok.handle, 'tiktok');
+        const range = calculateRangeGrowth(history, record.tiktok.followers);
         stats.followers += record.tiktok.followers;
-        stats.growth += record.tiktok.deltaFollowers;
-        stats.prevFollowers += record.tiktok.followers - record.tiktok.deltaFollowers;
+        stats.growth += range.growth;
+        stats.baselineFollowers += range.baselineFollowers;
       }
       if (record.instagram) {
+        const history = getFollowerHistory(filteredRecords, record.instagram.handle, 'instagram');
+        const range = calculateRangeGrowth(history, record.instagram.followers);
         stats.followers += record.instagram.followers;
-        stats.growth += record.instagram.deltaFollowers;
-        stats.prevFollowers += record.instagram.followers - record.instagram.deltaFollowers;
+        stats.growth += range.growth;
+        stats.baselineFollowers += range.baselineFollowers;
       }
       if (record.twitter) {
+        const history = getFollowerHistory(filteredRecords, record.twitter.handle, 'twitter');
+        const range = calculateRangeGrowth(history, record.twitter.followers);
         stats.followers += record.twitter.followers;
-        stats.growth += record.twitter.deltaFollowers;
-        stats.prevFollowers += record.twitter.followers - record.twitter.deltaFollowers;
+        stats.growth += range.growth;
+        stats.baselineFollowers += range.baselineFollowers;
       }
     }
 
     return Array.from(repMap.entries()).map(([rep, data]) => ({
       rep,
       totalFollowers: data.followers,
+      rangeGrowth: data.growth,
       totalGrowth7d: data.growth,
       fanpageCount: data.count,
-      avgGrowthPercent: data.prevFollowers > 0 ? (data.growth / data.prevFollowers) * 100 : 0,
+      avgGrowthPercent: data.baselineFollowers > 0 ? (data.growth / data.baselineFollowers) * 100 : 0,
     })).sort((a, b) => b.totalFollowers - a.totalFollowers);
-  }, [dateFilteredRecords]);
+  }, [filteredRecords]);
 
   const availableReps = useMemo(() => {
     const reps = new Set<string>();
@@ -370,7 +359,7 @@ function getFollowerHistory(
   return history.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-function calculateDeltas(
+export function calculateDeltas(
   history: { date: Date; followers: number }[],
   currentFollowers: number
 ): { delta1d?: number; delta7d?: number } {
@@ -383,20 +372,35 @@ function calculateDeltas(
   const latestRecord = sorted[0];
 
   let delta1d: number | undefined;
-  // Find previous record at least 6 hours old (captures "previous day" even with variable scrape timing)
-  const record1d = findPreviousRecord(history, latestRecord, 6 * 60 * 60 * 1000);
+  // True 24h delta: use the latest snapshot at least 24 hours old.
+  const record1d = findPreviousRecord(history, latestRecord, 24 * 60 * 60 * 1000);
   if (record1d) {
     delta1d = currentFollowers - record1d.followers;
   }
 
   let delta7d: number | undefined;
-  // Find record at least 5 days old for 7D calculation
-  const record7d = findPreviousRecord(history, latestRecord, 5 * 24 * 60 * 60 * 1000);
+  // True 7d delta: use the latest snapshot at least 7 days old.
+  const record7d = findPreviousRecord(history, latestRecord, 7 * 24 * 60 * 60 * 1000);
   if (record7d) {
     delta7d = currentFollowers - record7d.followers;
   }
 
   return { delta1d, delta7d };
+}
+
+export function calculateRangeGrowth(
+  history: { date: Date; followers: number }[],
+  currentFollowers: number
+): { growth: number; growthPercent: number; baselineFollowers: number } {
+  if (history.length === 0) {
+    return { growth: 0, growthPercent: 0, baselineFollowers: currentFollowers };
+  }
+
+  const baselineFollowers = history[0].followers;
+  const growth = currentFollowers - baselineFollowers;
+  const growthPercent = baselineFollowers > 0 ? (growth / baselineFollowers) * 100 : 0;
+
+  return { growth, growthPercent, baselineFollowers };
 }
 
 function findPreviousRecord(
@@ -412,4 +416,94 @@ function findPreviousRecord(
     .sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return candidates[0] || null;
+}
+
+interface GrowthTrendPoint {
+  date: Date;
+  tiktok: number;
+  instagram: number;
+  twitter: number;
+  total: number;
+}
+
+interface DailyPlatformSnapshot {
+  platform: Platform;
+  followers: number;
+  timestampMs: number;
+}
+
+interface GrowthTrendBucket {
+  date: Date;
+  snapshotsByHandle: Map<string, DailyPlatformSnapshot>;
+}
+
+function updateDailySnapshot(
+  bucket: GrowthTrendBucket,
+  platform: Platform,
+  handle: string,
+  followers: number,
+  timestampMs: number
+): void {
+  const key = `${platform}:${handle}`;
+  const existing = bucket.snapshotsByHandle.get(key);
+
+  if (!existing || timestampMs >= existing.timestampMs) {
+    bucket.snapshotsByHandle.set(key, {
+      platform,
+      followers,
+      timestampMs,
+    });
+  }
+}
+
+export function buildGrowthTrendData(records: CreatorRecord[]): GrowthTrendPoint[] {
+  const dateMap = new Map<string, GrowthTrendBucket>();
+
+  for (const record of records) {
+    const dateKey = record.timestamp.toISOString().split('T')[0];
+    const timestampMs = record.timestamp.getTime();
+
+    if (!dateMap.has(dateKey)) {
+      dateMap.set(dateKey, {
+        date: new Date(dateKey),
+        snapshotsByHandle: new Map<string, DailyPlatformSnapshot>(),
+      });
+    }
+
+    const bucket = dateMap.get(dateKey)!;
+
+    if (record.tiktok) {
+      updateDailySnapshot(bucket, 'tiktok', record.tiktok.handle, record.tiktok.followers, timestampMs);
+    }
+    if (record.instagram) {
+      updateDailySnapshot(bucket, 'instagram', record.instagram.handle, record.instagram.followers, timestampMs);
+    }
+    if (record.twitter) {
+      updateDailySnapshot(bucket, 'twitter', record.twitter.handle, record.twitter.followers, timestampMs);
+    }
+  }
+
+  const trend: GrowthTrendPoint[] = [];
+
+  for (const bucket of dateMap.values()) {
+    let tiktok = 0;
+    let instagram = 0;
+    let twitter = 0;
+
+    for (const snapshot of bucket.snapshotsByHandle.values()) {
+      if (snapshot.platform === 'tiktok') tiktok += snapshot.followers;
+      if (snapshot.platform === 'instagram') instagram += snapshot.followers;
+      if (snapshot.platform === 'twitter') twitter += snapshot.followers;
+    }
+
+    trend.push({
+      date: bucket.date,
+      tiktok,
+      instagram,
+      twitter,
+      total: tiktok + instagram + twitter,
+    });
+  }
+
+  return trend.sort((a, b) => a.date.getTime() - b.date.getTime());
 }

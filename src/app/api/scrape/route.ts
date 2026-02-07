@@ -1,20 +1,29 @@
 /**
- * API endpoint for scraping social metrics
- * Called by Vercel Cron every 6 hours
+ * API endpoint for scraping social metrics.
+ * Called by Vercel Cron daily at 6:00 AM UTC.
  *
  * Flow:
  * 1. Read creator roster from Google Sheets (INPUT only)
- * 2. Scrape each platform via Apify
+ * 2. Scrape each platform via provider APIs
  * 3. INSERT snapshots to PostgreSQL (append-only, never overwrites)
  * 4. Revalidate dashboard cache
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
-import { insertSnapshots, isDatabaseConfigured, type Platform, type MetricSnapshotInsert } from '@/lib/db';
+import { insertSnapshots, isDatabaseConfigured, type MetricSnapshotInsert, type Platform } from '@/lib/db';
+import { logger } from '@/lib/logger';
+import { TikTokResponseSchema, InstagramResponseSchema, TwitterResponseSchema } from '@/lib/schemas/scraper';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max for scraping
+
+const DEFAULT_CONCURRENCY = 6;
+const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
+const DEFAULT_MAX_RETRIES = 2;
+const BASE_RETRY_DELAY_MS = 750;
+const MAX_RETRY_DELAY_MS = 5_000;
+const ALERT_SUCCESS_RATIO_THRESHOLD = 0.6;
 
 interface RosterEntry {
   tiktokHandle?: string;
@@ -33,6 +42,128 @@ interface ScrapeResult {
   videos?: number;
 }
 
+interface PlatformStat {
+  attempted: number;
+  succeeded: number;
+  failed: string[];
+}
+
+interface ScrapeStats {
+  results: ScrapeResult[];
+  platformStats: Record<Platform, PlatformStat>;
+}
+
+interface ScrapeTask {
+  handle: string;
+  marketingRep?: string;
+  platform: Platform;
+  execute: () => Promise<ScrapeResult | null>;
+}
+
+interface FetchRetryOptions {
+  label: string;
+  timeoutMs?: number;
+  maxRetries?: number;
+}
+
+function getScrapeConcurrency(): number {
+  const parsed = Number.parseInt(process.env.SCRAPE_CONCURRENCY || '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CONCURRENCY;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  options: FetchRetryOptions
+): Promise<Response> {
+  const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...init,
+        signal: controller.signal,
+      });
+
+      const shouldRetryStatus = response.status === 429 || response.status >= 500;
+      if (!shouldRetryStatus || attempt === maxRetries) {
+        return response;
+      }
+
+      const delayMs = Math.min(BASE_RETRY_DELAY_MS * (2 ** attempt), MAX_RETRY_DELAY_MS);
+      await sleep(delayMs);
+      continue;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(`${options.label} request failed`);
+      lastError = err;
+
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      const delayMs = Math.min(BASE_RETRY_DELAY_MS * (2 ** attempt), MAX_RETRY_DELAY_MS);
+      await sleep(delayMs);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError || new Error(`${options.label} request failed after retries`);
+}
+
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+
+  const runners = Array.from({ length: limit }, async () => {
+    while (true) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
+function calculateSuccessRatio(stat: PlatformStat): number {
+  if (stat.attempted === 0) return 1;
+  return stat.succeeded / stat.attempted;
+}
+
+async function sendScrapeAlert(payload: Record<string, unknown>): Promise<boolean> {
+  const webhookUrl = process.env.SCRAPE_ALERT_WEBHOOK_URL;
+  if (!webhookUrl) return false;
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return response.ok;
+  } catch (error) {
+    logger.error('Failed to send scrape alert webhook', { error: String(error) });
+    return false;
+  }
+}
+
 /**
  * Fetch creator roster from Google Sheets (INPUT sheet)
  */
@@ -44,7 +175,7 @@ async function fetchCreatorRoster(): Promise<RosterEntry[]> {
     throw new Error('Google Sheets credentials not configured');
   }
 
-  // Roster sheet - fan_page_tracker_data has clean handle list
+  // Roster sheet - fan_page_tracker_data has clean handle list.
   // Columns: A=Team Member, B=Artist, C=IG Handle, D=Twitter Handle, E=TikTok Handle
   const range = 'fan_page_tracker_data!A2:G1000';
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
@@ -57,19 +188,17 @@ async function fetchCreatorRoster(): Promise<RosterEntry[]> {
   const data = await response.json();
   const rows: string[][] = data.values || [];
 
-  // Parse roster - extract handles and marketing rep
   const roster: RosterEntry[] = [];
   const seen = new Set<string>();
 
   for (const row of rows) {
-    const marketingRep = row[0]?.trim() || undefined;      // Column A: Team Member
-    const instagramHandle = row[2]?.trim().replace('@', '') || undefined;  // Column C: IG Handle
-    const twitterHandle = row[3]?.trim().replace('@', '') || undefined;    // Column D: Twitter Handle
-    const tiktokHandle = row[4]?.trim().replace('@', '') || undefined;     // Column E: TikTok Handle
+    const marketingRep = row[0]?.trim() || undefined; // Column A
+    const instagramHandle = row[2]?.trim().replace('@', '') || undefined; // Column C
+    const twitterHandle = row[3]?.trim().replace('@', '') || undefined; // Column D
+    const tiktokHandle = row[4]?.trim().replace('@', '') || undefined; // Column E
 
-    // Create a unique key for this creator combination
     const key = `${tiktokHandle || ''}|${instagramHandle || ''}|${twitterHandle || ''}`;
-    if (!key || key === '||' || seen.has(key)) continue;
+    if (key === '||' || seen.has(key)) continue;
     seen.add(key);
 
     roster.push({
@@ -83,9 +212,6 @@ async function fetchCreatorRoster(): Promise<RosterEntry[]> {
   return roster;
 }
 
-/**
- * Scrape TikTok profile using Apify
- */
 async function scrapeTikTok(handle: string): Promise<{
   followers: number;
   likes: number;
@@ -93,19 +219,20 @@ async function scrapeTikTok(handle: string): Promise<{
 } | null> {
   const apiToken = process.env.APIFY_API_TOKEN;
   if (!apiToken) {
-    console.warn('APIFY_API_TOKEN not configured, skipping TikTok scrape');
+    logger.warn('APIFY_API_TOKEN not configured, skipping TikTok scrape');
     return null;
   }
 
   try {
-    // Clean handle (remove @ if present)
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-
-    const response = await fetch(
-      `https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    const response = await fetchWithRetry(
+      'https://api.apify.com/v2/acts/clockworks~tiktok-profile-scraper/run-sync-get-dataset-items',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiToken}`,
+        },
         body: JSON.stringify({
           profiles: [cleanHandle],
           resultsPerPage: 1,
@@ -113,98 +240,105 @@ async function scrapeTikTok(handle: string): Promise<{
           shouldDownloadCovers: false,
           shouldDownloadSubtitles: false,
         }),
-      }
+      },
+      { label: `TikTok:${cleanHandle}` }
     );
 
     if (!response.ok) {
-      console.error(`Apify TikTok scrape failed for ${handle}: ${response.status}`);
+      logger.error('Apify TikTok scrape failed', { handle, status: response.status, platform: 'tiktok' });
       return null;
     }
 
-    const results = await response.json();
-    if (!results || results.length === 0) {
-      console.warn(`No TikTok data found for ${handle}`);
+    const raw = await response.json();
+    const parsed = TikTokResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error('TikTok response validation failed', {
+        handle,
+        platform: 'tiktok',
+        issues: parsed.error.issues,
+      });
       return null;
     }
 
-    const profile = results[0];
+    const profile = parsed.data[0];
     return {
       followers: profile.authorMeta?.fans || profile.fans || 0,
       likes: profile.authorMeta?.heart || profile.heart || 0,
       videos: profile.authorMeta?.video || profile.video || 0,
     };
   } catch (error) {
-    console.error(`Error scraping TikTok for ${handle}:`, error);
+    logger.error('Error scraping TikTok', { handle, platform: 'tiktok', error: String(error) });
     return null;
   }
 }
 
-/**
- * Scrape Instagram profile using Apify
- */
 async function scrapeInstagram(handle: string): Promise<{
   followers: number;
   posts: number;
 } | null> {
   const apiToken = process.env.APIFY_API_TOKEN;
   if (!apiToken) {
-    console.warn('APIFY_API_TOKEN not configured, skipping Instagram scrape');
+    logger.warn('APIFY_API_TOKEN not configured, skipping Instagram scrape');
     return null;
   }
 
   try {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-
-    const response = await fetch(
-      `https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items?token=${apiToken}`,
+    const response = await fetchWithRetry(
+      'https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiToken}`,
+        },
         body: JSON.stringify({
           usernames: [cleanHandle],
         }),
-      }
+      },
+      { label: `Instagram:${cleanHandle}` }
     );
 
     if (!response.ok) {
-      console.error(`Apify Instagram scrape failed for ${handle}: ${response.status}`);
+      logger.error('Apify Instagram scrape failed', { handle, status: response.status, platform: 'instagram' });
       return null;
     }
 
-    const results = await response.json();
-    if (!results || results.length === 0) {
-      console.warn(`No Instagram data found for ${handle}`);
+    const raw = await response.json();
+    const parsed = InstagramResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error('Instagram response validation failed', {
+        handle,
+        platform: 'instagram',
+        issues: parsed.error.issues,
+      });
       return null;
     }
 
-    const profile = results[0];
+    const profile = parsed.data[0];
     return {
       followers: profile.followersCount || 0,
       posts: profile.postsCount || 0,
     };
   } catch (error) {
-    console.error(`Error scraping Instagram for ${handle}:`, error);
+    logger.error('Error scraping Instagram', { handle, platform: 'instagram', error: String(error) });
     return null;
   }
 }
 
-/**
- * Scrape Twitter/X profile using RapidAPI (twitter241)
- */
 async function scrapeTwitter(handle: string): Promise<{
   followers: number;
   posts: number;
 } | null> {
   const apiKey = process.env.RAPIDAPI_KEY;
   if (!apiKey) {
-    console.warn('RAPIDAPI_KEY not configured, skipping Twitter scrape');
+    logger.warn('RAPIDAPI_KEY not configured, skipping Twitter scrape');
     return null;
   }
 
   try {
     const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
-
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://twitter241.p.rapidapi.com/user?username=${cleanHandle}`,
       {
         method: 'GET',
@@ -212,126 +346,156 @@ async function scrapeTwitter(handle: string): Promise<{
           'X-RapidAPI-Key': apiKey,
           'X-RapidAPI-Host': 'twitter241.p.rapidapi.com',
         },
-      }
+      },
+      { label: `Twitter:${cleanHandle}` }
     );
 
     if (!response.ok) {
-      console.error(`RapidAPI Twitter scrape failed for ${handle}: ${response.status}`);
+      logger.error('RapidAPI Twitter scrape failed', { handle, status: response.status, platform: 'twitter' });
       return null;
     }
 
-    const data = await response.json();
-    const legacy = data?.result?.data?.user?.result?.legacy;
-
-    if (!legacy) {
-      console.warn(`No Twitter data found for ${handle}`);
+    const raw = await response.json();
+    const parsed = TwitterResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      logger.error('Twitter response validation failed', {
+        handle,
+        platform: 'twitter',
+        issues: parsed.error.issues,
+      });
       return null;
     }
 
+    const legacy = parsed.data.result.data.user.result.legacy;
     return {
       followers: legacy.followers_count || 0,
       posts: legacy.statuses_count || 0,
     };
   } catch (error) {
-    console.error(`Error scraping Twitter for ${handle}:`, error);
+    logger.error('Error scraping Twitter', { handle, platform: 'twitter', error: String(error) });
     return null;
   }
 }
 
-interface ScrapeStats {
-  results: ScrapeResult[];
-  platformStats: {
-    tiktok: { attempted: number; succeeded: number; failed: string[] };
-    instagram: { attempted: number; succeeded: number; failed: string[] };
-    twitter: { attempted: number; succeeded: number; failed: string[] };
-  };
-}
-
-/**
- * Scrape all platforms for all creators in the roster
- */
-async function scrapeAllPlatforms(roster: RosterEntry[]): Promise<ScrapeStats> {
-  const results: ScrapeResult[] = [];
-  const platformStats = {
-    tiktok: { attempted: 0, succeeded: 0, failed: [] as string[] },
-    instagram: { attempted: 0, succeeded: 0, failed: [] as string[] },
-    twitter: { attempted: 0, succeeded: 0, failed: [] as string[] },
+function buildScrapeTasks(roster: RosterEntry[]): { tasks: ScrapeTask[]; platformStats: Record<Platform, PlatformStat> } {
+  const tasks: ScrapeTask[] = [];
+  const platformStats: Record<Platform, PlatformStat> = {
+    tiktok: { attempted: 0, succeeded: 0, failed: [] },
+    instagram: { attempted: 0, succeeded: 0, failed: [] },
+    twitter: { attempted: 0, succeeded: 0, failed: [] },
   };
 
   for (const entry of roster) {
-    // Scrape TikTok
     if (entry.tiktokHandle) {
       platformStats.tiktok.attempted++;
-      const tiktokData = await scrapeTikTok(entry.tiktokHandle);
-      if (tiktokData) {
-        platformStats.tiktok.succeeded++;
-        results.push({
-          handle: entry.tiktokHandle,
-          platform: 'tiktok',
-          marketingRep: entry.marketingRep,
-          followers: tiktokData.followers,
-          likes: tiktokData.likes,
-          videos: tiktokData.videos,
-        });
-      } else {
-        platformStats.tiktok.failed.push(entry.tiktokHandle);
-      }
+      tasks.push({
+        handle: entry.tiktokHandle,
+        marketingRep: entry.marketingRep,
+        platform: 'tiktok',
+        execute: async () => {
+          const data = await scrapeTikTok(entry.tiktokHandle!);
+          if (!data) return null;
+          return {
+            handle: entry.tiktokHandle!,
+            platform: 'tiktok',
+            marketingRep: entry.marketingRep,
+            followers: data.followers,
+            likes: data.likes,
+            videos: data.videos,
+          };
+        },
+      });
     }
 
-    // Scrape Instagram
     if (entry.instagramHandle) {
       platformStats.instagram.attempted++;
-      const igData = await scrapeInstagram(entry.instagramHandle);
-      if (igData) {
-        platformStats.instagram.succeeded++;
-        results.push({
-          handle: entry.instagramHandle,
-          platform: 'instagram',
-          marketingRep: entry.marketingRep,
-          followers: igData.followers,
-          posts: igData.posts,
-        });
-      } else {
-        platformStats.instagram.failed.push(entry.instagramHandle);
-      }
+      tasks.push({
+        handle: entry.instagramHandle,
+        marketingRep: entry.marketingRep,
+        platform: 'instagram',
+        execute: async () => {
+          const data = await scrapeInstagram(entry.instagramHandle!);
+          if (!data) return null;
+          return {
+            handle: entry.instagramHandle!,
+            platform: 'instagram',
+            marketingRep: entry.marketingRep,
+            followers: data.followers,
+            posts: data.posts,
+          };
+        },
+      });
     }
 
-    // Scrape Twitter
     if (entry.twitterHandle) {
       platformStats.twitter.attempted++;
-      const twitterData = await scrapeTwitter(entry.twitterHandle);
-      if (twitterData) {
-        platformStats.twitter.succeeded++;
-        results.push({
-          handle: entry.twitterHandle,
-          platform: 'twitter',
-          marketingRep: entry.marketingRep,
-          followers: twitterData.followers,
-          posts: twitterData.posts,
-        });
-      } else {
-        platformStats.twitter.failed.push(entry.twitterHandle);
-      }
+      tasks.push({
+        handle: entry.twitterHandle,
+        marketingRep: entry.marketingRep,
+        platform: 'twitter',
+        execute: async () => {
+          const data = await scrapeTwitter(entry.twitterHandle!);
+          if (!data) return null;
+          return {
+            handle: entry.twitterHandle!,
+            platform: 'twitter',
+            marketingRep: entry.marketingRep,
+            followers: data.followers,
+            posts: data.posts,
+          };
+        },
+      });
     }
+  }
 
-    // Small delay between creators to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 100));
+  return { tasks, platformStats };
+}
+
+async function scrapeAllPlatforms(roster: RosterEntry[]): Promise<ScrapeStats> {
+  const { tasks, platformStats } = buildScrapeTasks(roster);
+  const results: ScrapeResult[] = [];
+
+  const taskResults = await runWithConcurrency(tasks, getScrapeConcurrency(), async (task) => {
+    try {
+      return await task.execute();
+    } catch (error) {
+      logger.error('Unhandled scrape error', { platform: task.platform, handle: task.handle, error: String(error) });
+      return null;
+    }
+  });
+
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    const result = taskResults[i];
+
+    if (result) {
+      platformStats[task.platform].succeeded++;
+      results.push(result);
+    } else {
+      platformStats[task.platform].failed.push(task.handle);
+    }
   }
 
   return { results, platformStats };
 }
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret for security
-  const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return NextResponse.json(
+      { error: 'CRON_SECRET is not configured' },
+      { status: 500 }
+    );
+  }
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const startedAt = Date.now();
+
   try {
-    // Check database configuration
     const dbConfigured = await isDatabaseConfigured();
     if (!dbConfigured) {
       return NextResponse.json(
@@ -340,19 +504,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Read creator roster from Google Sheet (INPUT sheet)
-    console.log('Fetching creator roster...');
+    logger.info('Fetching creator roster');
     const roster = await fetchCreatorRoster();
-    console.log(`Found ${roster.length} creators in roster`);
+    logger.info('Roster loaded', { creators: roster.length });
 
-    // 2. Scrape each platform via Apify
-    console.log('Scraping platforms...');
+    logger.info('Scraping platforms');
     const { results: scrapeResults, platformStats } = await scrapeAllPlatforms(roster);
-    console.log(`Scraped ${scrapeResults.length} platform profiles`);
-    console.log('Platform stats:', JSON.stringify(platformStats, null, 2));
+    logger.info('Scraping complete', { profiles: scrapeResults.length });
 
-    // 3. Transform results to snapshots and INSERT to PostgreSQL
-    const snapshots: MetricSnapshotInsert[] = scrapeResults.map(result => ({
+    const snapshots: MetricSnapshotInsert[] = scrapeResults.map((result) => ({
       handle: result.handle,
       platform: result.platform,
       marketing_rep: result.marketingRep,
@@ -362,11 +522,57 @@ export async function POST(request: NextRequest) {
       videos: result.videos,
     }));
 
-    console.log('Inserting snapshots to database...');
+    logger.info('Inserting snapshots to database', { count: snapshots.length });
     const insertResult = await insertSnapshots(snapshots);
-    console.log(`Insert result: ${insertResult.inserted} inserted, ${insertResult.skipped} skipped, ${insertResult.failed} failed`);
+    if (insertResult.lockUnavailable) {
+      return NextResponse.json(
+        {
+          error: 'Another scrape insert is already in progress',
+          database: {
+            inserted: insertResult.inserted,
+            skipped: insertResult.skipped,
+            failed: insertResult.failed,
+          },
+        },
+        { status: 409 }
+      );
+    }
 
-    // 4. Revalidate dashboard cache so new data appears immediately
+    const successRatio = {
+      tiktok: calculateSuccessRatio(platformStats.tiktok),
+      instagram: calculateSuccessRatio(platformStats.instagram),
+      twitter: calculateSuccessRatio(platformStats.twitter),
+    };
+
+    const alertReasons: string[] = [];
+    (Object.keys(successRatio) as Platform[]).forEach((platform) => {
+      if (successRatio[platform] < ALERT_SUCCESS_RATIO_THRESHOLD) {
+        alertReasons.push(`${platform} success ratio below ${(ALERT_SUCCESS_RATIO_THRESHOLD * 100).toFixed(0)}%`);
+      }
+    });
+    if (insertResult.inserted === 0 && scrapeResults.length > 0) {
+      alertReasons.push('No snapshots inserted');
+    }
+
+    let alertSent = false;
+    if (alertReasons.length > 0) {
+      alertSent = await sendScrapeAlert({
+        event: 'brokedown_scrape_alert',
+        timestamp: new Date().toISOString(),
+        reasons: alertReasons,
+        platformStats: {
+          tiktok: { ...platformStats.tiktok, successRatio: successRatio.tiktok },
+          instagram: { ...platformStats.instagram, successRatio: successRatio.instagram },
+          twitter: { ...platformStats.twitter, successRatio: successRatio.twitter },
+        },
+        database: {
+          inserted: insertResult.inserted,
+          skipped: insertResult.skipped,
+          failed: insertResult.failed,
+        },
+      });
+    }
+
     revalidatePath('/broke/dashboard');
     revalidatePath('/broke/dashboard/leaderboard');
     revalidatePath('/api/metrics');
@@ -374,15 +580,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startedAt,
       roster: {
         totalCreators: roster.length,
       },
       scrape: {
         total: scrapeResults.length,
+        concurrency: getScrapeConcurrency(),
         platforms: {
-          tiktok: { attempted: platformStats.tiktok.attempted, succeeded: platformStats.tiktok.succeeded, failed: platformStats.tiktok.failed.length },
-          instagram: { attempted: platformStats.instagram.attempted, succeeded: platformStats.instagram.succeeded, failed: platformStats.instagram.failed.length },
-          twitter: { attempted: platformStats.twitter.attempted, succeeded: platformStats.twitter.succeeded, failed: platformStats.twitter.failed.length },
+          tiktok: {
+            attempted: platformStats.tiktok.attempted,
+            succeeded: platformStats.tiktok.succeeded,
+            failed: platformStats.tiktok.failed.length,
+            successRatio: successRatio.tiktok,
+          },
+          instagram: {
+            attempted: platformStats.instagram.attempted,
+            succeeded: platformStats.instagram.succeeded,
+            failed: platformStats.instagram.failed.length,
+            successRatio: successRatio.instagram,
+          },
+          twitter: {
+            attempted: platformStats.twitter.attempted,
+            succeeded: platformStats.twitter.succeeded,
+            failed: platformStats.twitter.failed.length,
+            successRatio: successRatio.twitter,
+          },
         },
         failedHandles: {
           tiktok: platformStats.tiktok.failed,
@@ -395,9 +618,14 @@ export async function POST(request: NextRequest) {
         skipped: insertResult.skipped,
         failed: insertResult.failed,
       },
+      alerts: {
+        triggered: alertReasons.length > 0,
+        sent: alertSent,
+        reasons: alertReasons,
+      },
     });
   } catch (error) {
-    console.error('Scrape failed:', error);
+    logger.error('Scrape failed', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Scrape failed' },
       { status: 500 }
@@ -405,8 +633,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also support GET for manual testing (with auth)
+// Also support GET for manual testing (with auth).
 export async function GET(request: NextRequest) {
-  // Redirect to POST handler
   return POST(request);
 }

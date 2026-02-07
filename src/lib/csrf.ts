@@ -1,6 +1,14 @@
 import { createHmac, randomBytes } from 'crypto';
 
-const CSRF_SECRET = process.env.CSRF_SECRET || 'dev-csrf-secret-change-in-production';
+function getCsrfSecret(): string {
+  const secret = process.env.CSRF_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CSRF_SECRET environment variable must be set in production');
+  }
+  return 'dev-csrf-secret-change-in-production';
+}
+
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
 /**
@@ -9,7 +17,7 @@ const TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
  */
 export function generateCsrfToken(): string {
   const timestamp = Date.now().toString();
-  const signature = createHmac('sha256', CSRF_SECRET)
+  const signature = createHmac('sha256', getCsrfSecret())
     .update(timestamp)
     .digest('hex');
 
@@ -44,7 +52,7 @@ export function validateCsrfToken(token: string): boolean {
   }
 
   // Verify signature
-  const expectedSignature = createHmac('sha256', CSRF_SECRET)
+  const expectedSignature = createHmac('sha256', getCsrfSecret())
     .update(timestamp)
     .digest('hex');
 

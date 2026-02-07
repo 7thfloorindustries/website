@@ -1,53 +1,111 @@
 'use client';
 
 import { useState, useEffect, type FormEvent } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import BrokeLoading from '@/components/broke/BrokeLoading';
-
-const STORAGE_KEY = 'broke-dashboard-access';
 
 interface PasswordGateProps {
   children: React.ReactNode;
 }
 
 export default function PasswordGate({ children }: PasswordGateProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [hasAccess, setHasAccess] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [csrfToken, setCsrfToken] = useState('');
 
   useEffect(() => {
-    // Check if user already has access
-    const stored = sessionStorage.getItem(STORAGE_KEY);
-    if (stored === 'granted') {
-      setHasAccess(true);
-    }
-    setLoading(false);
+    let active = true;
+    const controller = new AbortController();
+
+    const checkAccess = async () => {
+      try {
+        const response = await fetch('/api/dashboard-auth', {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          if (active) {
+            setHasAccess(false);
+          }
+          return;
+        }
+
+        const data = await response.json() as { authenticated?: boolean; csrfToken?: string };
+        if (active) {
+          setHasAccess(Boolean(data.authenticated));
+          if (data.csrfToken) {
+            setCsrfToken(data.csrfToken);
+          }
+        }
+      } catch {
+        if (active) {
+          setHasAccess(false);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void checkAccess();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, []);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
+  useEffect(() => {
+    if (!hasAccess || pathname !== '/broke/dashboard/auth') {
+      return;
+    }
 
-    // Check against environment variable
-    // For client-side, we'll use a simple hash comparison
-    // The actual password check happens via API for security
-    fetch('/api/dashboard-auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          sessionStorage.setItem(STORAGE_KEY, 'granted');
-          setHasAccess(true);
-        } else {
-          setError('Incorrect password');
-        }
-      })
-      .catch(() => {
-        setError('Authentication failed');
+    const nextPath = searchParams.get('next');
+    const destination = nextPath && nextPath.startsWith('/broke/dashboard')
+      ? nextPath
+      : '/broke/dashboard';
+
+    router.replace(destination);
+  }, [hasAccess, pathname, router, searchParams]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/dashboard-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, csrfToken }),
       });
+
+      const data = await response.json() as { success?: boolean; error?: string };
+
+      if (response.ok && data.success) {
+        setPassword('');
+        setHasAccess(true);
+        return;
+      }
+
+      setError(data.error || 'Incorrect password');
+    } catch {
+      setError('Authentication failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -73,9 +131,12 @@ export default function PasswordGate({ children }: PasswordGateProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Password"
+            disabled={isSubmitting}
             autoFocus
           />
-          <button type="submit">Enter</button>
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Checking...' : 'Enter'}
+          </button>
         </form>
         {error && <div className="broke-dash-gate-error">{error}</div>}
       </div>

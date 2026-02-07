@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface SearchInputProps {
@@ -11,8 +11,27 @@ interface SearchInputProps {
 
 export default function SearchInput({ value, onChange, placeholder = 'Search fanpages...' }: SearchInputProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const [inputValue, setInputValue] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Sync local state when parent value changes (e.g. external clear)
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  // Debounce: propagate to parent after 300ms of inactivity
+  useEffect(() => {
+    timerRef.current = setTimeout(() => {
+      if (inputValue !== value) {
+        onChange(inputValue);
+      }
+    }, 300);
+    return () => clearTimeout(timerRef.current);
+  }, [inputValue, onChange, value]);
 
   const handleClear = useCallback(() => {
+    clearTimeout(timerRef.current);
+    setInputValue('');
     onChange('');
   }, [onChange]);
 
@@ -52,15 +71,15 @@ export default function SearchInput({ value, onChange, placeholder = 'Search fan
 
       <input
         type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         placeholder={placeholder}
         className="broke-dash-input"
       />
 
-      {value && (
+      {inputValue && (
         <button
           onClick={handleClear}
           style={{
