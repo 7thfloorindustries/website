@@ -2,37 +2,20 @@
 /* Extends BROKE design system with dashboard-specific styles */
 
 /* Hide the BROKE page gradient overlays on dashboard - they obscure table rows */
-/* Uses body.dashboard-cursor-active as fallback for browsers without :has() support */
-body.dashboard-cursor-active .broke-gradient-top,
-body.dashboard-cursor-active .broke-gradient-bottom,
+/* Uses body.custom-cursor-active as fallback for browsers without :has() support */
+body.custom-cursor-active .broke-gradient-top,
+body.custom-cursor-active .broke-gradient-bottom,
 .broke-page:has(.broke-dashboard) .broke-gradient-top,
 .broke-page:has(.broke-dashboard) .broke-gradient-bottom {
   display: none !important;
 }
 
-/* NUCLEAR CURSOR OVERRIDE - Must be at top of file */
-/* Uses transparent 1x1 PNG cursor instead of cursor:none for better browser support */
-body.dashboard-cursor-active,
-body.dashboard-cursor-active *,
-body.dashboard-cursor-active *:hover,
-body.dashboard-cursor-active *:focus,
-body.dashboard-cursor-active *:active,
-body.dashboard-cursor-active *::before,
-body.dashboard-cursor-active *::after,
-body.dashboard-cursor-active html,
-body.dashboard-cursor-active svg,
-body.dashboard-cursor-active svg *,
-body.dashboard-cursor-active table,
-body.dashboard-cursor-active table *,
-body.dashboard-cursor-active tr,
-body.dashboard-cursor-active tr:hover,
-body.dashboard-cursor-active td,
-body.dashboard-cursor-active th,
-body.dashboard-cursor-active a,
-body.dashboard-cursor-active a:hover,
-body.dashboard-cursor-active button,
-body.dashboard-cursor-active button:hover {
-  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') 0 0, none !important;
+/* Custom cursor - hide native cursor only on hover-capable devices */
+@media (hover: hover) {
+  body.custom-cursor-active,
+  body.custom-cursor-active * {
+    cursor: none !important;
+  }
 }
 
 /* Dashboard Variables - Override gold with BROKE yellow */
@@ -109,7 +92,26 @@ body.dashboard-cursor-active button:hover {
 
 @media (max-width: 1024px) {
   .broke-dashboard-sidebar {
-    display: none;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .broke-dashboard-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+}
+
+.broke-dash-mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .broke-dash-mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -167,6 +169,38 @@ body.dashboard-cursor-active button:hover {
   border-top: 1px solid var(--dash-border);
   font-size: 0.65rem;
   color: var(--dash-muted);
+}
+
+/* Logout Button */
+.broke-dashboard-sidebar-logout {
+  padding: 0.5rem 1rem 0;
+}
+
+.broke-dash-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(239, 68, 68, 0.8);
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.broke-dash-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+}
+
+.broke-dash-logout-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Money Mode Toggle */
@@ -244,107 +278,6 @@ body.dashboard-cursor-active button:hover {
   transform: translateX(14px);
 }
 
-/* Dashboard Cursor - Hide native cursor via body class */
-/* Use maximum specificity to override all cursor rules including .broke-page */
-body.dashboard-cursor-active,
-body.dashboard-cursor-active *,
-body.dashboard-cursor-active *::before,
-body.dashboard-cursor-active *::after,
-body.dashboard-cursor-active a,
-body.dashboard-cursor-active a:link,
-body.dashboard-cursor-active a:visited,
-body.dashboard-cursor-active a:hover,
-body.dashboard-cursor-active a:active,
-body.dashboard-cursor-active a[target="_blank"],
-body.dashboard-cursor-active button,
-body.dashboard-cursor-active button:hover,
-body.dashboard-cursor-active input,
-body.dashboard-cursor-active textarea,
-body.dashboard-cursor-active select,
-body.dashboard-cursor-active option,
-body.dashboard-cursor-active th,
-body.dashboard-cursor-active th.sortable,
-body.dashboard-cursor-active th.sortable:hover,
-body.dashboard-cursor-active label,
-body.dashboard-cursor-active [role="button"],
-body.dashboard-cursor-active [tabindex],
-body.dashboard-cursor-active [onclick],
-.broke-page body.dashboard-cursor-active *,
-.broke-page.dashboard-cursor-active *,
-body.dashboard-cursor-active .broke-page *,
-body.dashboard-cursor-active .broke-page a:hover,
-body.dashboard-cursor-active .broke-page button,
-body.dashboard-cursor-active .broke-dashboard *,
-body.dashboard-cursor-active .broke-dashboard a:hover,
-body.dashboard-cursor-active .broke-dashboard button,
-body.dashboard-cursor-active .broke-dash-table th.sortable,
-body.dashboard-cursor-active .broke-dash-table th.sortable:hover,
-body.dashboard-cursor-active .broke-dash-btn,
-body.dashboard-cursor-active .broke-dash-select,
-body.dashboard-cursor-active .broke-dash-platform-btn {
-  cursor: none !important;
-}
-
-/* Nuclear option - override EVERYTHING when dashboard cursor is active */
-/* This uses html body to get maximum specificity */
-html body.dashboard-cursor-active,
-html body.dashboard-cursor-active *,
-html body.dashboard-cursor-active *:hover,
-html body.dashboard-cursor-active *:focus,
-html body.dashboard-cursor-active *:active,
-html body.dashboard-cursor-active .broke-page *,
-html body.dashboard-cursor-active .broke-page *:hover {
-  cursor: none !important;
-}
-
-/* Fallback for touch devices */
-@media (pointer: coarse) {
-  body.dashboard-cursor-active,
-  body.dashboard-cursor-active * {
-    cursor: auto !important;
-  }
-}
-
-/* Recharts cursor override - target SVG elements directly */
-body.dashboard-cursor-active .recharts-wrapper,
-body.dashboard-cursor-active .recharts-surface,
-body.dashboard-cursor-active .recharts-surface *,
-body.dashboard-cursor-active .recharts-cartesian-axis-tick,
-body.dashboard-cursor-active .recharts-cartesian-axis-tick text,
-body.dashboard-cursor-active .recharts-tooltip-wrapper,
-body.dashboard-cursor-active .recharts-active-dot,
-body.dashboard-cursor-active .recharts-area,
-body.dashboard-cursor-active .recharts-bar,
-body.dashboard-cursor-active .recharts-scatter,
-body.dashboard-cursor-active svg,
-body.dashboard-cursor-active svg *,
-body.dashboard-cursor-active path,
-body.dashboard-cursor-active rect,
-body.dashboard-cursor-active circle,
-body.dashboard-cursor-active text {
-  cursor: none !important;
-  pointer-events: auto;
-}
-
-/* Force pointer-events on the container but cursor none on children */
-body.dashboard-cursor-active .broke-dash-chart,
-body.dashboard-cursor-active .broke-dash-chart-tall {
-  cursor: none !important;
-}
-
-body.dashboard-cursor-active .broke-dash-chart *,
-body.dashboard-cursor-active .broke-dash-chart-tall * {
-  cursor: none !important;
-}
-
-/* Override inline cursor styles set by Recharts */
-body.dashboard-cursor-active [style*="cursor"],
-body.dashboard-cursor-active svg[style*="cursor"],
-body.dashboard-cursor-active svg *[style*="cursor"],
-body.dashboard-cursor-active .recharts-wrapper [style*="cursor"],
-body.dashboard-cursor-active .recharts-surface [style*="cursor"] {
-  cursor: none !important;
-}
 
 /* Dashboard Header */
 .broke-dashboard-header {
@@ -382,6 +315,15 @@ body.dashboard-cursor-active .recharts-surface [style*="cursor"] {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.broke-dash-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--dash-muted);
+  text-align: right;
 }
 
 /* Dashboard Content */
@@ -504,6 +446,63 @@ body.dashboard-cursor-active .recharts-surface [style*="cursor"] {
 
 .broke-dash-live-dot.pulse {
   animation: broke-dash-pulse 2s ease-in-out infinite;
+}
+
+.broke-dash-alert {
+  margin-top: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--dash-border);
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+}
+
+.broke-dash-alert.warning {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.broke-dash-alert.critical {
+  border-color: rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.broke-dash-alert-title {
+  color: var(--dash-foreground);
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.broke-dash-alert-body {
+  color: var(--dash-foreground);
+  margin-bottom: 0.3rem;
+}
+
+.broke-dash-alert-section {
+  color: var(--dash-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.broke-dash-alert-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.broke-dash-alert-code {
+  display: block;
+  white-space: nowrap;
+  overflow-x: auto;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  color: #fcd34d;
+  font-size: 0.74rem;
 }
 
 @keyframes broke-dash-pulse {
@@ -854,32 +853,109 @@ body.dashboard-cursor-active .recharts-surface [style*="cursor"] {
   margin-top: 1rem;
 }
 
+/* Mobile / Desktop view toggles for leaderboard */
+.broke-dash-mobile-cards {
+  display: none;
+}
+
+.broke-dash-desktop-table {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .broke-dash-mobile-cards {
+    display: block;
+  }
+
+  .broke-dash-desktop-table {
+    display: none;
+  }
+}
+
+/* Mobile card styles */
+.broke-dash-mobile-card {
+  padding: 1rem;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.broke-dash-mobile-card:last-child {
+  border-bottom: none;
+}
+
+.broke-dash-mobile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.broke-dash-mobile-card-handle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.broke-dash-mobile-card-handle a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.broke-dash-mobile-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.broke-dash-mobile-card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.875rem;
+}
+
+.broke-dash-mobile-card-stat-label {
+  font-size: 0.65rem;
+  color: var(--dash-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Skip to content link */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  z-index: 10000;
+  padding: 0.75rem 1.5rem;
+  background: var(--dash-accent);
+  color: var(--dash-background);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Focus-visible outlines for keyboard navigation */
+.broke-dashboard :focus-visible {
+  outline: 2px solid var(--dash-accent);
+  outline-offset: 2px;
+}
+
+.broke-dash-table th.sortable:focus-visible {
+  outline: 2px solid var(--dash-accent);
+  outline-offset: -2px;
+}
+
 /* Yellow Glow Text */
 .broke-dash-glow {
   text-shadow: 0 0 30px var(--dash-accent-glow);
 }
 
-/* FINAL CURSOR OVERRIDE - At end of file for highest cascade priority */
-html body.dashboard-cursor-active,
-html body.dashboard-cursor-active *,
-html body.dashboard-cursor-active *:hover,
-html body.dashboard-cursor-active *:focus,
-html body.dashboard-cursor-active *:active,
-html body.dashboard-cursor-active table,
-html body.dashboard-cursor-active table *,
-html body.dashboard-cursor-active tbody,
-html body.dashboard-cursor-active tbody *,
-html body.dashboard-cursor-active tr,
-html body.dashboard-cursor-active tr *,
-html body.dashboard-cursor-active tr:hover,
-html body.dashboard-cursor-active tr:hover *,
-html body.dashboard-cursor-active td,
-html body.dashboard-cursor-active td *,
-html body.dashboard-cursor-active th,
-html body.dashboard-cursor-active th *,
-html body.dashboard-cursor-active .broke-dash-table,
-html body.dashboard-cursor-active .broke-dash-table *,
-html body.dashboard-cursor-active .broke-dash-table tr:hover,
-html body.dashboard-cursor-active .broke-dash-table tr:hover * {
-  cursor: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==') 0 0, none !important;
-}

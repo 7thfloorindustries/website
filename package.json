@@ -1,12 +1,19 @@
 {
-  "name": "website",
+  "name": "7thfloor-brokedown",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:influencer-authz": "node --env-file=.env.local --import tsx --test tests/influencer-authz.test.ts",
+    "test:brokedown": "node --import tsx --test tests/brokedown-*.test.ts",
+    "test:all": "node --import tsx --test tests/*.test.ts",
+    "test:delta": "node --import tsx --test tests/delta-calculations.test.ts",
+    "test:scraper": "node --import tsx --test tests/scraper-validation.test.ts",
+    "test:anomaly": "node --import tsx --test tests/anomaly-detection.test.ts",
+    "test:ratelimit": "node --import tsx --test tests/rate-limit.test.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -15,6 +22,7 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
     "@vercel/blob": "^2.0.1",
+    "bcryptjs": "^3.0.3",
     "framer-motion": "^12.29.2",
     "googleapis": "^171.0.0",
     "next": "16.1.6",
@@ -26,6 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

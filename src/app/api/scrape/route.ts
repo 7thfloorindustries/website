@@ -2,16 +2,30 @@
  * API endpoint for scraping social metrics.
  * Called by Vercel Cron daily at 6:00 AM UTC.
  *
- * Flow:
- * 1. Read creator roster from Google Sheets (INPUT only)
+ * Supports two modes:
+ * - Synchronous (default): Scrapes all creators in one invocation
+ * - Async (SCRAPE_ASYNC=1): Enqueues jobs into scrape_jobs table,
+ *   processed by /api/scrape/process in small batches within timeout
+ *
+ * Flow (sync):
+ * 1. Read creator roster from DB or Google Sheets
  * 2. Scrape each platform via provider APIs
  * 3. INSERT snapshots to PostgreSQL (append-only, never overwrites)
  * 4. Revalidate dashboard cache
+ *
+ * Flow (async):
+ * 1. Read creator roster
+ * 2. Insert all handles as pending jobs into scrape_jobs
+ * 3. Return immediately; /api/scrape/process drains the queue
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 import { revalidatePath } from 'next/cache';
 import { insertSnapshots, isDatabaseConfigured, type MetricSnapshotInsert, type Platform } from '@/lib/db';
+import { getActiveCreators } from '@/lib/db/creators';
+import { detectAnomalies, type Anomaly } from '@/lib/anomaly';
+import { sendSlackAlert } from '@/lib/alerts';
 import { logger } from '@/lib/logger';
 import { TikTokResponseSchema, InstagramResponseSchema, TwitterResponseSchema } from '@/lib/schemas/scraper';
 
@@ -147,27 +161,39 @@ function calculateSuccessRatio(stat: PlatformStat): number {
   return stat.succeeded / stat.attempted;
 }
 
-async function sendScrapeAlert(payload: Record<string, unknown>): Promise<boolean> {
-  const webhookUrl = process.env.SCRAPE_ALERT_WEBHOOK_URL;
-  if (!webhookUrl) return false;
 
+/**
+ * Fetch creator roster from the creators database table.
+ * Falls back to Google Sheets if the table is empty or unavailable.
+ */
+async function fetchCreatorRoster(): Promise<RosterEntry[]> {
+  // Try database first
   try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return response.ok;
+    const creators = await getActiveCreators();
+    if (creators.length > 0) {
+      logger.info('Roster loaded from creators table', { count: creators.length });
+      return creators.map((c) => ({
+        tiktokHandle: c.tiktok_handle || undefined,
+        instagramHandle: c.ig_handle || undefined,
+        twitterHandle: c.twitter_handle || undefined,
+        marketingRep: c.team_member || undefined,
+      }));
+    }
+    logger.warn('Creators table is empty, falling back to Google Sheets');
   } catch (error) {
-    logger.error('Failed to send scrape alert webhook', { error: String(error) });
-    return false;
+    logger.warn('Failed to read creators table, falling back to Google Sheets', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
+
+  // Fallback: Google Sheets
+  return fetchCreatorRosterFromSheets();
 }
 
 /**
- * Fetch creator roster from Google Sheets (INPUT sheet)
+ * Fetch creator roster from Google Sheets (legacy fallback)
  */
-async function fetchCreatorRoster(): Promise<RosterEntry[]> {
+async function fetchCreatorRosterFromSheets(): Promise<RosterEntry[]> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -175,8 +201,6 @@ async function fetchCreatorRoster(): Promise<RosterEntry[]> {
     throw new Error('Google Sheets credentials not configured');
   }
 
-  // Roster sheet - fan_page_tracker_data has clean handle list.
-  // Columns: A=Team Member, B=Artist, C=IG Handle, D=Twitter Handle, E=TikTok Handle
   const range = 'fan_page_tracker_data!A2:G1000';
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
 
@@ -192,10 +216,10 @@ async function fetchCreatorRoster(): Promise<RosterEntry[]> {
   const seen = new Set<string>();
 
   for (const row of rows) {
-    const marketingRep = row[0]?.trim() || undefined; // Column A
-    const instagramHandle = row[2]?.trim().replace('@', '') || undefined; // Column C
-    const twitterHandle = row[3]?.trim().replace('@', '') || undefined; // Column D
-    const tiktokHandle = row[4]?.trim().replace('@', '') || undefined; // Column E
+    const marketingRep = row[0]?.trim() || undefined;
+    const instagramHandle = row[2]?.trim().replace('@', '') || undefined;
+    const twitterHandle = row[3]?.trim().replace('@', '') || undefined;
+    const tiktokHandle = row[4]?.trim().replace('@', '') || undefined;
 
     const key = `${tiktokHandle || ''}|${instagramHandle || ''}|${twitterHandle || ''}`;
     if (key === '||' || seen.has(key)) continue;
@@ -479,6 +503,46 @@ async function scrapeAllPlatforms(roster: RosterEntry[]): Promise<ScrapeStats> {
   return { results, platformStats };
 }
 
+/**
+ * Enqueue all roster entries as pending scrape jobs.
+ * Returns the number of jobs created.
+ */
+async function enqueueScrapeJobs(roster: RosterEntry[]): Promise<number> {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) throw new Error('DATABASE_URL not set');
+  const sql = neon(connectionString);
+
+  // Clean up old completed/failed jobs (older than 24h)
+  await sql`DELETE FROM scrape_jobs WHERE created_at < NOW() - INTERVAL '24 hours'`;
+
+  // Check if there are already pending jobs (avoid double-enqueue)
+  const existing = await sql`
+    SELECT COUNT(*)::INTEGER AS cnt FROM scrape_jobs WHERE status IN ('pending', 'processing')
+  `;
+  if (existing[0]?.cnt > 0) {
+    logger.info('Scrape jobs already queued', { pending: existing[0].cnt });
+    return existing[0].cnt as number;
+  }
+
+  let jobCount = 0;
+  for (const entry of roster) {
+    const platforms: { handle: string; platform: Platform }[] = [];
+    if (entry.tiktokHandle) platforms.push({ handle: entry.tiktokHandle, platform: 'tiktok' });
+    if (entry.instagramHandle) platforms.push({ handle: entry.instagramHandle, platform: 'instagram' });
+    if (entry.twitterHandle) platforms.push({ handle: entry.twitterHandle, platform: 'twitter' });
+
+    for (const p of platforms) {
+      await sql`
+        INSERT INTO scrape_jobs (handle, platform, marketing_rep)
+        VALUES (${p.handle}, ${p.platform}, ${entry.marketingRep || null})
+      `;
+      jobCount++;
+    }
+  }
+
+  return jobCount;
+}
+
 export async function POST(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
@@ -494,6 +558,7 @@ export async function POST(request: NextRequest) {
   }
 
   const startedAt = Date.now();
+  const useAsync = process.env.SCRAPE_ASYNC === '1';
 
   try {
     const dbConfigured = await isDatabaseConfigured();
@@ -508,9 +573,37 @@ export async function POST(request: NextRequest) {
     const roster = await fetchCreatorRoster();
     logger.info('Roster loaded', { creators: roster.length });
 
+    // Async mode: enqueue jobs and return immediately
+    if (useAsync) {
+      logger.info('Async mode: enqueuing scrape jobs');
+      const jobCount = await enqueueScrapeJobs(roster);
+      logger.info('Scrape jobs enqueued', { jobs: jobCount });
+
+      return NextResponse.json({
+        success: true,
+        mode: 'async',
+        timestamp: new Date().toISOString(),
+        durationMs: Date.now() - startedAt,
+        roster: { totalCreators: roster.length },
+        jobsEnqueued: jobCount,
+      });
+    }
+
+    // Synchronous mode (default): scrape everything in this invocation
     logger.info('Scraping platforms');
     const { results: scrapeResults, platformStats } = await scrapeAllPlatforms(roster);
     logger.info('Scraping complete', { profiles: scrapeResults.length });
+
+    // Anomaly detection: compare new results against previous snapshots
+    let anomalies: Anomaly[] = [];
+    try {
+      anomalies = await detectAnomalies(scrapeResults);
+      if (anomalies.length > 0) {
+        logger.warn('Anomalies detected during scrape', { count: anomalies.length });
+      }
+    } catch (error) {
+      logger.error('Anomaly detection failed', { error: error instanceof Error ? error.message : String(error) });
+    }
 
     const snapshots: MetricSnapshotInsert[] = scrapeResults.map((result) => ({
       handle: result.handle,
@@ -553,11 +646,13 @@ export async function POST(request: NextRequest) {
     if (insertResult.inserted === 0 && scrapeResults.length > 0) {
       alertReasons.push('No snapshots inserted');
     }
+    if (anomalies.length > 0) {
+      alertReasons.push(`${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'} detected`);
+    }
 
     let alertSent = false;
     if (alertReasons.length > 0) {
-      alertSent = await sendScrapeAlert({
-        event: 'brokedown_scrape_alert',
+      alertSent = await sendSlackAlert({
         timestamp: new Date().toISOString(),
         reasons: alertReasons,
         platformStats: {
@@ -570,6 +665,8 @@ export async function POST(request: NextRequest) {
           skipped: insertResult.skipped,
           failed: insertResult.failed,
         },
+        anomalies: anomalies.length > 0 ? anomalies : undefined,
+        durationMs: Date.now() - startedAt,
       });
     }
 
@@ -579,6 +676,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      mode: 'sync',
       timestamp: new Date().toISOString(),
       durationMs: Date.now() - startedAt,
       roster: {
@@ -623,6 +721,7 @@ export async function POST(request: NextRequest) {
         sent: alertSent,
         reasons: alertReasons,
       },
+      anomalies: anomalies.length > 0 ? anomalies : [],
     });
   } catch (error) {
     logger.error('Scrape failed', { error: error instanceof Error ? error.message : String(error) });

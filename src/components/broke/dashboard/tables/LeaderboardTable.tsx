@@ -53,9 +53,25 @@ export default function LeaderboardTable({
 
   const SortIcon = ({ active, direction }: { active: boolean; direction: SortDirection }) => (
     <span style={{ marginLeft: '4px', color: active ? 'var(--dash-accent)' : 'var(--dash-muted)' }}>
-      {direction === 'asc' ? '↑' : '↓'}
+      {direction === 'asc' ? '\u2191' : '\u2193'}
     </span>
   );
+
+  const sortableProps = (key: SortKey) => ({
+    className: 'sortable',
+    role: 'columnheader' as const,
+    'aria-sort': (sortKey === key
+      ? (sortDirection === 'asc' ? 'ascending' : 'descending')
+      : 'none') as 'ascending' | 'descending' | 'none',
+    tabIndex: 0,
+    onClick: () => handleSort(key),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleSort(key);
+      }
+    },
+  });
 
   return (
     <motion.div
@@ -65,7 +81,63 @@ export default function LeaderboardTable({
       className="broke-dash-card"
       style={{ overflow: 'hidden' }}
     >
-      <div style={{ overflowX: 'auto' }}>
+      {/* Mobile card view */}
+      <div className="broke-dash-mobile-cards">
+        {sortedEntries.map((entry) => {
+          const platformColor = getPlatformColor(entry.platform);
+          return (
+            <div key={`${entry.handle}-${entry.platform}`} className="broke-dash-mobile-card">
+              <div className="broke-dash-mobile-card-header">
+                <span
+                  className="broke-dash-rank"
+                  style={{ backgroundColor: `${platformColor}15`, color: platformColor }}
+                >
+                  {entry.rank}
+                </span>
+                <div className="broke-dash-mobile-card-handle">
+                  <Link
+                    href={`/broke/dashboard/creator/${encodeURIComponent(entry.handle)}?platform=${entry.platform}`}
+                    style={{ color: 'var(--dash-foreground)', fontWeight: 500, textDecoration: 'none' }}
+                  >
+                    {entry.handle}
+                  </Link>
+                  <span className={`broke-dash-badge broke-dash-badge-${entry.platform}`} style={{ fontSize: '0.6rem', padding: '0.15rem 0.5rem' }}>
+                    {platformLabel(entry.platform)}
+                  </span>
+                </div>
+              </div>
+              <div className="broke-dash-mobile-card-stats">
+                <div className="broke-dash-mobile-card-stat">
+                  <span className="broke-dash-mobile-card-stat-label">Followers</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--dash-foreground)' }}>
+                    {formatNumber(entry.followers)}
+                  </span>
+                </div>
+                <div className="broke-dash-mobile-card-stat">
+                  <span className="broke-dash-mobile-card-stat-label">24H</span>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    color: (entry.delta1d ?? 0) >= 0 ? 'var(--dash-positive)' : 'var(--dash-negative)',
+                  }}>
+                    {entry.delta1d !== undefined ? formatDelta(entry.delta1d) : '—'}
+                  </span>
+                </div>
+                <div className="broke-dash-mobile-card-stat">
+                  <span className="broke-dash-mobile-card-stat-label">7D %</span>
+                  <span style={{
+                    color: entry.growthPercent >= 0 ? 'var(--dash-positive)' : 'var(--dash-negative)',
+                  }}>
+                    {formatPercent(entry.growthPercent)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table view */}
+      <div className="broke-dash-desktop-table" style={{ overflowX: 'auto' }}>
         <table className="broke-dash-table">
           <thead>
             <tr>
@@ -74,81 +146,44 @@ export default function LeaderboardTable({
                   Select
                 </th>
               )}
-              <th
-                className="sortable"
-                onClick={() => handleSort('rank')}
-              >
+              <th {...sortableProps('rank')}>
                 Rank
                 <SortIcon active={sortKey === 'rank'} direction={sortDirection} />
               </th>
               <th>Handle</th>
               <th>Platform</th>
               <th>Rep</th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('followers')}
-              >
+              <th {...sortableProps('followers')} style={{ textAlign: 'right' }}>
                 Followers
                 <SortIcon active={sortKey === 'followers'} direction={sortDirection} />
               </th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('delta1d')}
-              >
-                1D
+              <th {...sortableProps('delta1d')} style={{ textAlign: 'right' }}>
+                24H
                 <SortIcon active={sortKey === 'delta1d'} direction={sortDirection} />
               </th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('delta7d')}
-              >
+              <th {...sortableProps('delta7d')} style={{ textAlign: 'right' }}>
                 7D
                 <SortIcon active={sortKey === 'delta7d'} direction={sortDirection} />
               </th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('growthPercent')}
-              >
+              <th {...sortableProps('growthPercent')} style={{ textAlign: 'right' }}>
                 7D %
                 <SortIcon active={sortKey === 'growthPercent'} direction={sortDirection} />
               </th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('deltaPosts')}
-              >
-                Posts (1d)
+              <th {...sortableProps('deltaPosts')} style={{ textAlign: 'right' }}>
+                Posts (24h)
                 <SortIcon active={sortKey === 'deltaPosts'} direction={sortDirection} />
               </th>
-              <th
-                className="sortable"
-                style={{ textAlign: 'right' }}
-                onClick={() => handleSort('postsLast7d')}
-              >
+              <th {...sortableProps('postsLast7d')} style={{ textAlign: 'right' }}>
                 Posts (7d)
                 <SortIcon active={sortKey === 'postsLast7d'} direction={sortDirection} />
               </th>
               {hasTikTokEntries && (
                 <>
-                  <th
-                    className="sortable"
-                    style={{ textAlign: 'right' }}
-                    onClick={() => handleSort('engagementRate')}
-                    title="7-day likes / followers"
-                  >
+                  <th {...sortableProps('engagementRate')} style={{ textAlign: 'right' }} title="7-day likes / followers">
                     Engage %
                     <SortIcon active={sortKey === 'engagementRate'} direction={sortDirection} />
                   </th>
-                  <th
-                    className="sortable"
-                    style={{ textAlign: 'right' }}
-                    onClick={() => handleSort('conversionRate')}
-                    title="New followers / likes"
-                  >
+                  <th {...sortableProps('conversionRate')} style={{ textAlign: 'right' }} title="New followers / likes">
                     Conv %
                     <SortIcon active={sortKey === 'conversionRate'} direction={sortDirection} />
                   </th>

@@ -43,10 +43,15 @@ describe('Brokedown security controls', () => {
     mutableEnv.CSRF_SECRET = 'test-csrf-secret';
     delete process.env.DASHBOARD_PASSWORD;
 
+    // Get a valid CSRF token first
+    const csrfRequest = new NextRequest('http://localhost/api/dashboard-auth', { method: 'GET' });
+    const csrfResponse = await getDashboardAuth(csrfRequest);
+    const { csrfToken } = await csrfResponse.json();
+
     const request = new NextRequest('http://localhost/api/dashboard-auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: 'irrelevant' }),
+      body: JSON.stringify({ password: 'irrelevant', csrfToken }),
     });
 
     const response = await postDashboardAuth(request);
@@ -95,7 +100,11 @@ describe('Brokedown security controls', () => {
     const statusBody = await statusResponse.json();
     assert.equal(statusBody.authenticated, true);
 
-    const logoutResponse = await deleteDashboardAuth();
+    const logoutRequest = new NextRequest('http://localhost/api/dashboard-auth', {
+      method: 'DELETE',
+      headers: { cookie: cookieHeader },
+    });
+    const logoutResponse = await deleteDashboardAuth(logoutRequest);
     assert.equal(logoutResponse.status, 200);
     assert.match(logoutResponse.headers.get('set-cookie') || '', /broke_session=;/);
   });

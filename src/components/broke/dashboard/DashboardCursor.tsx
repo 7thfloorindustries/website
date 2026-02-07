@@ -18,7 +18,7 @@ export default function DashboardCursor() {
     setMounted(true);
     setVisible(true); // Start visible
 
-    // Note: dashboard-cursor-active class is managed by CursorProvider for stability
+    // Note: custom-cursor-active class is managed by CursorProvider for stability
 
     const onMove = (e: MouseEvent) => {
       setPosition({ x: e.clientX, y: e.clientY });

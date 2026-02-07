@@ -26,9 +26,10 @@ export default function DashboardLayout({
     <QueryClientProvider client={queryClient}>
       <CursorProvider>
         <PasswordGate>
+          <a href="#main-content" className="skip-link">Skip to content</a>
           <div className="broke-dashboard">
             <DashboardNav />
-            <main className="broke-dashboard-main">
+            <main className="broke-dashboard-main" id="main-content">
               {children}
             </main>
 

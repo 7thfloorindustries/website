@@ -7,6 +7,26 @@
     {
       "path": "/api/scrape",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/scrape/process",
+      "schedule": "* 6 * * *"
+    },
+    {
+      "path": "/api/creatorcore/sync",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/creatorcore/pending-hydrate",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/creatorcore/genre",
+      "schedule": "30 */6 * * *"
+    },
+    {
+      "path": "/api/reports/weekly",
+      "schedule": "0 9 * * 1"
     }
   ],
   "rewrites": [

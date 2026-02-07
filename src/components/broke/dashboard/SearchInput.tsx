@@ -77,11 +77,13 @@ export default function SearchInput({ value, onChange, placeholder = 'Search fan
         onBlur={() => setIsFocused(false)}
         placeholder={placeholder}
         className="broke-dash-input"
+        aria-label={placeholder}
       />
 
       {inputValue && (
         <button
           onClick={handleClear}
+          aria-label="Clear search"
           style={{
             position: 'absolute',
             right: '12px',

@@ -26,31 +26,16 @@ export function CursorProvider({ children }: { children: ReactNode }) {
     }
     setMounted(true);
 
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-    if (isTouchDevice) {
+    // Only hide native cursor on hover-capable (non-touch) devices
+    const canHover = window.matchMedia('(hover: hover)').matches;
+    if (!canHover) {
       return;
     }
 
-    // Add body class
-    document.body.classList.add('dashboard-cursor-active');
-
-    // Create a transparent 1x1 cursor image (base64 encoded transparent PNG)
-    const transparentCursor = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-
-    // Inject a style tag to use transparent cursor instead of none
-    const styleEl = document.createElement('style');
-    styleEl.id = 'cursor-nuke';
-    styleEl.textContent = `
-      html, body, *, *::before, *::after {
-        cursor: url('${transparentCursor}') 0 0, none !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
+    document.body.classList.add('custom-cursor-active');
 
     return () => {
-      document.body.classList.remove('dashboard-cursor-active');
-      const style = document.getElementById('cursor-nuke');
-      if (style) style.remove();
+      document.body.classList.remove('custom-cursor-active');
     };
   }, []);
 

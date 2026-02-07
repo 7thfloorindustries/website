@@ -20,27 +20,27 @@
   --color-muted: var(--muted);
 }
 
-/* Hide default cursor on desktop - with accessibility override */
-@media (pointer: fine) {
+/* Hide default cursor on desktop - only for hover-capable devices */
+@media (hover: hover) {
   * {
     cursor: none;
   }
 
   /* Restore default cursor for interactive elements for accessibility */
   /* Exclude dashboard pages (they use custom cursor) */
-  body:not(.dashboard-cursor-active) a,
-  body:not(.dashboard-cursor-active) button,
-  body:not(.dashboard-cursor-active) input,
-  body:not(.dashboard-cursor-active) textarea,
-  body:not(.dashboard-cursor-active) select,
-  body:not(.dashboard-cursor-active) [role="button"],
-  body:not(.dashboard-cursor-active) [tabindex]:not([tabindex="-1"]) {
+  body:not(.custom-cursor-active) a,
+  body:not(.custom-cursor-active) button,
+  body:not(.custom-cursor-active) input,
+  body:not(.custom-cursor-active) textarea,
+  body:not(.custom-cursor-active) select,
+  body:not(.custom-cursor-active) [role="button"],
+  body:not(.custom-cursor-active) [tabindex]:not([tabindex="-1"]) {
     cursor: pointer !important;
   }
 
   /* When dashboard cursor is active, hide all native cursors */
-  body.dashboard-cursor-active,
-  body.dashboard-cursor-active * {
+  body.custom-cursor-active,
+  body.custom-cursor-active * {
     cursor: none !important;
   }
 }
