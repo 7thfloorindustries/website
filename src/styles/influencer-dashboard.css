@@ -1,0 +1,821 @@
+/* Influencer Dashboard Styles */
+/* 7th Floor gold accent theme */
+
+/* Override global cursor:none from globals.css */
+.inf-dash,
+.inf-dash *,
+.inf-dash-gate,
+.inf-dash-gate * {
+  cursor: auto !important;
+}
+
+.inf-dash a,
+.inf-dash button,
+.inf-dash select,
+.inf-dash input,
+.inf-dash th.sortable,
+.inf-dash tr.clickable,
+.inf-dash-gate button,
+.inf-dash-gate input,
+.inf-dash-gate select {
+  cursor: pointer !important;
+}
+
+.inf-dash input[type="text"],
+.inf-dash input[type="email"],
+.inf-dash input[type="password"],
+.inf-dash-gate input[type="password"],
+.inf-dash-gate input[type="email"] {
+  cursor: text !important;
+}
+
+/* Dashboard Variables — on both .inf-dash and .inf-dash-gate so gate works before auth */
+.inf-dash,
+.inf-dash-gate {
+  --inf-accent: #C4A35A;
+  --inf-accent-light: #D4B76A;
+  --inf-accent-glow: rgba(196, 163, 90, 0.3);
+  --inf-background: #0A0A0A;
+  --inf-foreground: #FFFFFF;
+  --inf-muted: rgba(255, 255, 255, 0.4);
+  --inf-card-start: #111111;
+  --inf-card-end: #0D0D0D;
+  --inf-border: rgba(255, 255, 255, 0.08);
+  --inf-sidebar-width: 220px;
+
+  /* Platform colors */
+  --inf-tiktok: #00f2ea;
+  --inf-instagram: #E1306C;
+  --inf-twitter: #1DA1F2;
+  --inf-youtube: #FF0000;
+
+  /* Growth colors */
+  --inf-positive: #22C55E;
+  --inf-negative: #EF4444;
+}
+
+/* Dashboard Layout */
+.inf-dash-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--inf-background);
+}
+
+.inf-dash-main {
+  flex: 1;
+  margin-left: var(--inf-sidebar-width);
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 1024px) {
+  .inf-dash-main {
+    margin-left: 0;
+  }
+}
+
+/* Dashboard Sidebar */
+.inf-dash-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--inf-sidebar-width);
+  background: linear-gradient(180deg, #0D0D0D 0%, var(--inf-background) 100%);
+  border-right: 1px solid var(--inf-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  padding-top: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .inf-dash-sidebar {
+    display: none;
+  }
+}
+
+.inf-dash-sidebar-brand {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--inf-border);
+}
+
+.inf-dash-sidebar-brand h2 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--inf-accent);
+  margin: 0 0 0.25rem 0;
+}
+
+.inf-dash-sidebar-brand p {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--inf-foreground);
+  margin: 0;
+}
+
+.inf-dash-sidebar-nav {
+  padding: 1rem 0;
+}
+
+.inf-dash-sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--inf-muted);
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.inf-dash-sidebar-nav a:hover {
+  color: var(--inf-foreground);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.inf-dash-sidebar-nav a.active {
+  color: var(--inf-accent);
+  background: rgba(196, 163, 90, 0.1);
+  border-left-color: var(--inf-accent);
+}
+
+.inf-dash-sidebar-footer {
+  margin-top: auto;
+  padding: 1rem;
+  border-top: 1px solid var(--inf-border);
+  font-size: 0.65rem;
+  color: var(--inf-muted);
+}
+
+/* Dashboard Header */
+.inf-dash-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--inf-border);
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.inf-dash-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inf-dash-header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--inf-foreground);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.inf-dash-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Dashboard Content */
+.inf-dash-content {
+  padding: 1.5rem;
+  padding-bottom: 6rem;
+}
+
+/* Cards */
+.inf-dash-card {
+  background: linear-gradient(135deg, var(--inf-card-start) 0%, var(--inf-card-end) 100%);
+  border: 1px solid var(--inf-border);
+  border-radius: 12px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.inf-dash-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.inf-dash-card.accent-left {
+  border-left: 3px solid var(--inf-accent);
+}
+
+/* Stat Cards */
+.inf-dash-stat-card {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.inf-dash-stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.inf-dash-stat-value {
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--inf-accent);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 30px var(--inf-accent-glow);
+}
+
+.inf-dash-stat-label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--inf-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.inf-dash-stat-subtitle {
+  font-size: 0.7rem;
+  color: var(--inf-muted);
+  margin-top: 0.25rem;
+}
+
+/* Badges */
+.inf-dash-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.inf-dash-badge-tiktok {
+  background: rgba(0, 242, 234, 0.15);
+  color: var(--inf-tiktok);
+  border: 1px solid rgba(0, 242, 234, 0.3);
+}
+
+.inf-dash-badge-instagram {
+  background: rgba(225, 48, 108, 0.15);
+  color: var(--inf-instagram);
+  border: 1px solid rgba(225, 48, 108, 0.3);
+}
+
+.inf-dash-badge-twitter,
+.inf-dash-badge-x {
+  background: rgba(29, 161, 242, 0.15);
+  color: var(--inf-twitter);
+  border: 1px solid rgba(29, 161, 242, 0.3);
+}
+
+.inf-dash-badge-youtube {
+  background: rgba(255, 0, 0, 0.15);
+  color: var(--inf-youtube);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+}
+
+/* Genre Badges */
+.inf-dash-genre-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid;
+}
+
+/* Budget Badge */
+.inf-dash-budget-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(196, 163, 90, 0.15);
+  color: var(--inf-accent);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+}
+
+/* Growth Badges */
+.inf-dash-growth {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.inf-dash-growth-positive {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--inf-positive);
+}
+
+.inf-dash-growth-negative {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--inf-negative);
+}
+
+/* Form Elements */
+.inf-dash-input {
+  width: 100%;
+  padding: 0.625rem 2.5rem 0.625rem 2.5rem;
+  background: var(--inf-background);
+  border: 1px solid var(--inf-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--inf-foreground);
+  transition: border-color 0.2s ease;
+}
+
+.inf-dash-input::placeholder {
+  color: var(--inf-muted);
+}
+
+.inf-dash-input:focus {
+  outline: none;
+  border-color: rgba(196, 163, 90, 0.5);
+}
+
+.inf-dash-select {
+  padding: 0.375rem 0.75rem;
+  background: var(--inf-card-start);
+  border: 1px solid var(--inf-border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--inf-foreground);
+  transition: border-color 0.2s ease;
+}
+
+.inf-dash-select:focus {
+  outline: none;
+  border-color: var(--inf-accent);
+}
+
+/* Buttons */
+.inf-dash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.inf-dash-btn-accent {
+  background: rgba(196, 163, 90, 0.1);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+  color: var(--inf-accent);
+}
+
+.inf-dash-btn-accent:hover {
+  background: rgba(196, 163, 90, 0.2);
+}
+
+.inf-dash-btn-accent:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Platform Filter Buttons */
+.inf-dash-platform-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inf-dash-platform-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--inf-border);
+  background: transparent;
+  color: var(--inf-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.inf-dash-platform-btn:hover {
+  color: var(--inf-foreground);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.inf-dash-platform-btn.active {
+  border-color: transparent;
+}
+
+/* Tables */
+.inf-dash-table-wrapper {
+  overflow-x: auto;
+}
+
+.inf-dash-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.inf-dash-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--inf-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--inf-border);
+}
+
+.inf-dash-table th.sortable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+  user-select: none;
+}
+
+.inf-dash-table th.sortable:hover {
+  color: var(--inf-accent);
+}
+
+.inf-dash-table th.sorted {
+  color: var(--inf-accent);
+}
+
+.inf-dash-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--inf-border);
+  font-size: 0.875rem;
+}
+
+.inf-dash-table tr {
+  transition: background 0.2s ease;
+}
+
+.inf-dash-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inf-dash-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.inf-dash-table tbody tr.clickable:hover {
+  background: rgba(196, 163, 90, 0.05);
+}
+
+/* Search Bar */
+.inf-dash-search {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.inf-dash-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--inf-muted);
+  pointer-events: none;
+}
+
+/* Filter Bar */
+.inf-dash-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 0;
+}
+
+/* Spinner */
+.inf-dash-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--inf-border);
+  border-top-color: var(--inf-accent);
+  border-radius: 50%;
+  animation: inf-dash-spin 1s linear infinite;
+}
+
+@keyframes inf-dash-spin {
+  to { transform: rotate(360deg); }
+}
+
+.inf-dash-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.inf-dash-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--inf-negative);
+  font-size: 0.875rem;
+}
+
+/* Grid Layouts */
+.inf-dash-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.inf-dash-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.inf-dash-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1280px) {
+  .inf-dash-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .inf-dash-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .inf-dash-grid-4,
+  .inf-dash-grid-3,
+  .inf-dash-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Span Utilities */
+.inf-dash-col-span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .inf-dash-col-span-2 {
+    grid-column: span 1;
+  }
+}
+
+/* Password Gate */
+.inf-dash-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--inf-background);
+}
+
+.inf-dash-gate-box {
+  background: linear-gradient(135deg, var(--inf-card-start) 0%, var(--inf-card-end) 100%);
+  border: 1px solid var(--inf-border);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 1rem;
+}
+
+.inf-dash-gate h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--inf-foreground);
+  margin: 0 0 0.5rem 0;
+  text-align: center;
+}
+
+.inf-dash-gate p {
+  font-size: 0.875rem;
+  color: var(--inf-muted);
+  text-align: center;
+  margin: 0 0 1.5rem 0;
+}
+
+.inf-dash-gate input,
+.inf-dash-gate select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--inf-background);
+  border: 1px solid var(--inf-border);
+  border-radius: 8px;
+  font-size: 1rem;
+  color: var(--inf-foreground);
+  margin-bottom: 1rem;
+}
+
+.inf-dash-gate input:focus,
+.inf-dash-gate select:focus {
+  outline: none;
+  border-color: var(--inf-accent);
+}
+
+.inf-dash-gate button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--inf-accent);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--inf-background);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.inf-dash-gate button:hover {
+  opacity: 0.9;
+}
+
+.inf-dash-gate-error {
+  color: var(--inf-negative);
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+/* Gold Glow Text */
+.inf-dash-glow {
+  text-shadow: 0 0 30px var(--inf-accent-glow);
+}
+
+/* Pagination */
+.inf-dash-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+}
+
+.inf-dash-page-btn {
+  min-width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--inf-border);
+  background: transparent;
+  color: var(--inf-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.inf-dash-page-btn:hover:not(:disabled) {
+  color: var(--inf-foreground);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.inf-dash-page-btn.active {
+  background: rgba(196, 163, 90, 0.15);
+  border-color: rgba(196, 163, 90, 0.3);
+  color: var(--inf-accent);
+}
+
+.inf-dash-page-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.inf-dash-page-ellipsis {
+  color: var(--inf-muted);
+  font-size: 0.8rem;
+  padding: 0 0.25rem;
+}
+
+/* Section Heading */
+.inf-dash-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--inf-foreground);
+  margin: 2rem 0 1rem 0;
+}
+
+/* Back Link */
+.inf-dash-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--inf-muted);
+  text-decoration: none;
+  margin-bottom: 1rem;
+  transition: color 0.2s ease;
+}
+
+.inf-dash-back:hover {
+  color: var(--inf-accent);
+}
+
+/* Detail Header */
+.inf-dash-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.inf-dash-detail-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--inf-foreground);
+  margin: 0 0 0.5rem 0;
+}
+
+.inf-dash-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Status Badges */
+.inf-dash-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.inf-dash-status-delivered {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--inf-positive);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.inf-dash-status-pending {
+  background: rgba(196, 163, 90, 0.15);
+  color: var(--inf-accent);
+  border: 1px solid rgba(196, 163, 90, 0.3);
+}
+
+.inf-dash-status-missing {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--inf-negative);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Empty State */
+.inf-dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--inf-muted);
+  font-size: 0.875rem;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+/* Mobile Nav Toggle */
+.inf-dash-mobile-toggle {
+  display: none;
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 50;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--inf-accent);
+  color: var(--inf-background);
+  border: none;
+  box-shadow: 0 4px 12px rgba(196, 163, 90, 0.3);
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .inf-dash-mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

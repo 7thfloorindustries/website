@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS metrics_snapshots (
 
 -- Indexes for fast queries
 CREATE INDEX IF NOT EXISTS idx_snapshots_handle_platform ON metrics_snapshots(handle, platform);
+CREATE INDEX IF NOT EXISTS idx_snapshots_handle_platform_time_desc ON metrics_snapshots(handle, platform, scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshots_scraped_at ON metrics_snapshots(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshots_platform_time ON metrics_snapshots(platform, scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshots_marketing_rep ON metrics_snapshots(marketing_rep);

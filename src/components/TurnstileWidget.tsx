@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import Script from "next/script";
+import { useNonce } from "@/components/NonceProvider";
 
 declare global {
   interface Window {
@@ -37,8 +39,12 @@ export default function TurnstileWidget({
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const [scriptReady, setScriptReady] = useState(
+    () => typeof window !== "undefined" && Boolean(window.turnstile)
+  );
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const nonce = useNonce();
 
   const renderWidget = useCallback(() => {
     if (!containerRef.current || !window.turnstile || !siteKey) return;
@@ -55,41 +61,31 @@ export default function TurnstileWidget({
   }, [siteKey, onVerify, onError, onExpire]);
 
   useEffect(() => {
-    if (!siteKey) return;
-
-    // Check if turnstile is already loaded
-    if (window.turnstile) {
-      renderWidget();
-      return;
-    }
-
-    // Wait for turnstile to load
-    const checkInterval = setInterval(() => {
-      if (window.turnstile) {
-        clearInterval(checkInterval);
-        renderWidget();
-      }
-    }, 100);
-
-    // Cleanup after 10 seconds
-    const timeout = setTimeout(() => {
-      clearInterval(checkInterval);
-    }, 10000);
+    if (!siteKey || !scriptReady) return;
+    renderWidget();
 
     return () => {
-      clearInterval(checkInterval);
-      clearTimeout(timeout);
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current);
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, renderWidget]);
+  }, [siteKey, scriptReady, renderWidget]);
 
   // Don't render anything if Turnstile is not configured
   if (!siteKey) {
     return null;
   }
 
-  return <div ref={containerRef} className={className} />;
+  return (
+    <>
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        strategy="lazyOnload"
+        nonce={nonce}
+        onLoad={() => setScriptReady(true)}
+      />
+      <div ref={containerRef} className={className} />
+    </>
+  );
 }

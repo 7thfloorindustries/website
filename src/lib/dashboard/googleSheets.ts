@@ -101,9 +101,13 @@ function rowToCreatorRecord(row: SheetRow): CreatorRecord {
 export async function fetchSheetData(): Promise<CreatorRecord[]> {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   const apiKey = process.env.GOOGLE_API_KEY;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (!sheetId || !apiKey) {
-    console.warn('Google Sheets credentials not set, using mock data');
+    if (isProduction) {
+      throw new Error('Google Sheets credentials are not configured');
+    }
+    console.warn('Google Sheets credentials not set, using mock data (development only)');
     return getMockData();
   }
 
@@ -121,6 +125,9 @@ export async function fetchSheetData(): Promise<CreatorRecord[]> {
     return rows.map(parseRow).map(rowToCreatorRecord);
   } catch (error) {
     console.error('Error fetching sheet data:', error);
+    if (isProduction) {
+      throw error instanceof Error ? error : new Error('Failed to fetch sheet data');
+    }
     return getMockData();
   }
 }

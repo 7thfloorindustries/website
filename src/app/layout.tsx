@@ -1,17 +1,14 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
-import Script from "next/script";
 import "./globals.css";
-import LenisProvider from "@/components/LenisProvider";
-import FloatingNav from "@/components/FloatingNav";
-import PageTransition from "@/components/PageTransition";
 import { NonceProvider } from "@/components/NonceProvider";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -58,23 +55,8 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        {/* Cloudflare Turnstile script with nonce */}
-        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-          <Script
-            src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-            strategy="beforeInteractive"
-            nonce={nonce}
-          />
-        )}
-      </head>
       <body className={`${inter.variable} antialiased`}>
-        <NonceProvider nonce={nonce}>
-          <LenisProvider>
-            <FloatingNav />
-            <PageTransition>{children}</PageTransition>
-          </LenisProvider>
-        </NonceProvider>
+        <NonceProvider nonce={nonce}>{children}</NonceProvider>
       </body>
     </html>
   );

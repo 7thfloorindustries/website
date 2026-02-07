@@ -8,7 +8,7 @@
 
 Transformed the Google Sheets-based dashboard into a scalable platform with:
 - **PostgreSQL (Neon)** for permanent historical data storage
-- **Vercel Cron** for automated scraping every 6 hours
+- **Vercel Cron** for automated scraping daily at 6:00 AM UTC
 - **Proper cache invalidation** so data appears instantly after scrapes
 - **Immutable data model** that never loses historical records
 
@@ -33,7 +33,7 @@ Transformed the Google Sheets-based dashboard into a scalable platform with:
 │             ▼                       │ - scraped_at        │     │
 │   ┌─────────────────────┐           │ - marketing_rep     │     │
 │   │ Vercel Cron         │           └─────────┬───────────┘     │
-│   │ (Every 6 hours)     │                     │                 │
+│   │ (Daily at 6:00 UTC) │                     │                 │
 │   │                     │                     │                 │
 │   │ 1. Read roster      │                     ▼                 │
 │   │ 2. Scrape platforms │           ┌─────────────────────┐     │
@@ -68,7 +68,7 @@ Transformed the Google Sheets-based dashboard into a scalable platform with:
 
 | File | Changes |
 |------|---------|
-| `vercel.json` | Added `/api/scrape` cron job (`0 */6 * * *` - every 6 hours) |
+| `vercel.json` | Added `/api/scrape` cron job (`0 6 * * *` - daily at 6:00 AM UTC) |
 | `src/app/api/metrics/route.ts` | Queries PostgreSQL first, falls back to Google Sheets; returns pre-calculated deltas |
 | `src/lib/dashboard/types.ts` | Added `delta1d` and `delta7d` fields to `PlatformMetrics` |
 | `src/hooks/dashboard/useGrowthCalculations.ts` | Uses pre-calculated deltas from API when available |
@@ -157,7 +157,7 @@ DATABASE_URL="postgres://..." GOOGLE_SHEET_ID="..." GOOGLE_API_KEY="..." npx tsx
 
 ### 5. Deploy
 
-Push to Vercel. The cron job will automatically run every 6 hours.
+Push to Vercel. The cron job will automatically run daily at 6:00 AM UTC.
 
 ---
 
@@ -169,7 +169,7 @@ Returns creator metrics with pre-calculated deltas.
 - Fallback: Google Sheets
 
 ### POST /api/scrape
-Triggered by Vercel Cron every 6 hours.
+Triggered by Vercel Cron daily at 6:00 AM UTC.
 - Requires `Authorization: Bearer {CRON_SECRET}`
 - Reads roster from Google Sheets
 - Scrapes TikTok, Instagram, Twitter via Apify
@@ -185,7 +185,7 @@ Triggered by Vercel Cron every 6 hours.
 | Data can be accidentally deleted | Immutable append-only snapshots |
 | Must hard-refresh for new data | Auto-revalidation after scrapes |
 | Delta calculation in JS (fragile) | Delta calculation in SQL (reliable) |
-| Manual scrape runs | Automated every 6 hours |
+| Manual scrape runs | Automated daily at 6:00 AM UTC |
 | Google Sheets is bottleneck | PostgreSQL scales infinitely |
 | No audit trail | Full history preserved forever |
 

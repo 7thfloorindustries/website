@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { hasBrokeSession, isBrokeAuthEnforced } from '@/lib/broke/auth';
+import { hasInfluencerSession } from '@/lib/influencer/auth';
 
 // Dynamic imports for Redis (only loaded when env vars present)
 let ratelimit: {
@@ -112,6 +114,12 @@ function generateNonce(): string {
   return btoa(String.fromCharCode(...array));
 }
 
+function getRequestHostname(request: NextRequest): string {
+  const rawHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+  const firstHost = rawHost.split(',')[0].trim().toLowerCase();
+  return firstHost.replace(/:\d+$/, '');
+}
+
 function buildCspHeader(nonce: string): string {
   const directives = [
     "default-src 'self'",
@@ -128,24 +136,72 @@ function buildCspHeader(nonce: string): string {
   return directives.join('; ');
 }
 
-export async function middleware(request: NextRequest) {
-  // Initialize Redis on first request
-  await initRedis();
-
-  const host = request.headers.get('host') || '';
+export async function proxy(request: NextRequest) {
+  const hostname = getRequestHostname(request);
   const pathname = request.nextUrl.pathname;
-
-  // Host-based routing for brokedown.app
-  if (host === 'brokedown.app' || host.startsWith('brokedown.app:')) {
-    // Skip API routes and paths already on /broke
-    if (!pathname.startsWith('/broke') && !pathname.startsWith('/api')) {
+  const isBrokedownHost = hostname === 'brokedown.app' || hostname === 'www.brokedown.app';
+  const rewritePathname = isBrokedownHost && !pathname.startsWith('/broke') && !pathname.startsWith('/api')
+    ? (pathname === '/' ? '/broke' : `/broke${pathname}`)
+    : pathname;
+  const rewriteUrl = rewritePathname !== pathname
+    ? (() => {
       const url = request.nextUrl.clone();
-      url.pathname = pathname === '/' ? '/broke' : `/broke${pathname}`;
-      return NextResponse.rewrite(url);
+      url.pathname = rewritePathname;
+      return url;
+    })()
+    : null;
+
+  // Server-side auth enforcement for Brokedown private surfaces.
+  if (isBrokeAuthEnforced()) {
+    const isBrokeDashboardAuthPage = rewritePathname === '/broke/dashboard/auth';
+    const isBrokeDashboardRoute = rewritePathname === '/broke/dashboard' || rewritePathname.startsWith('/broke/dashboard/');
+    const isBrokeMetricsApi = rewritePathname === '/api/metrics';
+    const requiresBrokeSession = (isBrokeDashboardRoute && !isBrokeDashboardAuthPage) || isBrokeMetricsApi;
+
+    if (requiresBrokeSession && !hasBrokeSession(request)) {
+      if (isBrokeMetricsApi) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Unauthorized' }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/broke/dashboard/auth';
+      redirectUrl.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
+      return NextResponse.redirect(redirectUrl);
     }
   }
 
-  const response = NextResponse.next();
+  // Protect influencer APIs and deep routes with server-side session checks.
+  const isInfluencerApi = pathname.startsWith('/api/influencers');
+  const isInfluencerAuthEndpoint = pathname === '/api/influencers/auth';
+  const isInfluencerPage = pathname.startsWith('/influencers');
+
+  if (isInfluencerApi && !isInfluencerAuthEndpoint && !hasInfluencerSession(request)) {
+    return new NextResponse(
+      JSON.stringify({ error: 'Unauthorized' }),
+      {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+
+  if (
+    isInfluencerPage &&
+    pathname !== '/influencers' &&
+    !hasInfluencerSession(request)
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/influencers';
+    return NextResponse.redirect(url);
+  }
+
+  const response = rewriteUrl ? NextResponse.rewrite(rewriteUrl) : NextResponse.next();
 
   // Generate nonce for CSP
   const nonce = generateNonce();
@@ -162,8 +218,12 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  // Only rate limit POST requests to /api/*
-  if (request.method === 'POST' && request.nextUrl.pathname.startsWith('/api/')) {
+  // Rate limit POST requests to /api/* and GET requests to /api/metrics.
+  const isPostApiRequest = request.method === 'POST' && request.nextUrl.pathname.startsWith('/api/');
+  const isMetricsGetRequest = request.method === 'GET' && request.nextUrl.pathname === '/api/metrics';
+
+  if (isPostApiRequest || isMetricsGetRequest) {
+    await initRedis();
     const ip = getClientIp(request);
     const { limited, retryAfter } = await checkRateLimit(ip);
 
@@ -187,6 +247,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Match all paths except static files
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|woff|woff2|ttf|eot|otf|mp4|webm|mp3|wav|json|map)$).*)',
   ],
 };

@@ -15,21 +15,24 @@ export default function NeonWall() {
   return (
     <div className="broke-home-wall">
       <Image
-        src="/broke/wall.png"
+        src="/broke/wall.webp"
         alt="Broke Neon Wall"
         fill
         className={`broke-lights ${loaded ? 'loaded' : ''}`}
         priority
         sizes="100vw"
+        quality={70}
         style={{ objectFit: 'cover' }}
       />
       <Image
-        src="/broke/wall_off.png"
+        src="/broke/wall_off.webp"
         alt="Broke Neon Wall Off"
         fill
         className={`broke-lights broke-lights-off ${loaded ? 'loaded flicker' : ''}`}
-        priority
+        loading="lazy"
+        fetchPriority="low"
         sizes="100vw"
+        quality={65}
         style={{ objectFit: 'cover' }}
       />
     </div>

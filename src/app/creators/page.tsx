@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import CustomCursor from "@/components/CustomCursor";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import MagneticElement from "@/components/MagneticElement";
 import MagneticButton from "@/components/MagneticButton";
 import SectionReveal from "@/components/SectionReveal";
 import TurnstileWidget from "@/components/TurnstileWidget";
+import dynamic from "next/dynamic";
+
+const CustomCursor = dynamic(() => import("@/components/CustomCursor"), {
+  ssr: false,
+});
 
 const easeCustom = [0.25, 0.46, 0.45, 0.94] as const;
 

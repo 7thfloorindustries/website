@@ -80,8 +80,8 @@ export default function OverviewPage() {
           />
           <StatCard
             label={`Growth (${dateLabel})`}
-            value={aggregatedStats.totalGrowth7d}
-            prefix={aggregatedStats.totalGrowth7d >= 0 ? '+' : ''}
+            value={aggregatedStats.rangeGrowth}
+            prefix={aggregatedStats.rangeGrowth >= 0 ? '+' : ''}
             delay={0.1}
           />
           <StatCard
@@ -144,9 +144,9 @@ export default function OverviewPage() {
                       <span style={{ color: 'var(--dash-foreground)', fontFamily: 'monospace', fontSize: '0.875rem' }}>{formatNumber(rep.totalFollowers)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--dash-muted)' }}>7D Growth</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: rep.totalGrowth7d >= 0 ? 'var(--dash-positive)' : 'var(--dash-negative)' }}>
-                        {formatDelta(rep.totalGrowth7d)}
+                      <span style={{ fontSize: '0.75rem', color: 'var(--dash-muted)' }}>Growth ({dateLabel})</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: rep.rangeGrowth >= 0 ? 'var(--dash-positive)' : 'var(--dash-negative)' }}>
+                        {formatDelta(rep.rangeGrowth)}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

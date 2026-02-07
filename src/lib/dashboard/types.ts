@@ -40,6 +40,7 @@ export interface Creator {
 
 export interface AggregatedStats {
   totalFollowers: number;
+  rangeGrowth: number;
   totalGrowth7d: number;
   activeCreators: number;
   byPlatform: {
@@ -78,6 +79,7 @@ export interface LeaderboardEntry {
 export interface RepStats {
   rep: string;
   totalFollowers: number;
+  rangeGrowth: number;
   totalGrowth7d: number;
   fanpageCount: number;
   avgGrowthPercent: number;
@@ -95,4 +97,34 @@ export type DateRangePreset = '7d' | '14d' | '30d' | '90d' | 'custom';
 export interface CompareSelection {
   entries: LeaderboardEntry[];
   maxSelections: number;
+}
+
+export type DashboardHealthStatus = 'healthy' | 'degraded' | 'stale';
+export type DashboardPlatformHealthStatus = 'fresh' | 'stale' | 'missing';
+
+export interface ScrapeHealthPlatform {
+  platform: Platform;
+  latestSnapshotAt: Date | null;
+  hours_since_latest_snapshot: number | null;
+  snapshots_last_24h: number;
+  handles_last_24h: number;
+  status: DashboardPlatformHealthStatus;
+}
+
+export interface ScrapeHealthTroubleshooting {
+  manualScrapeCommand: string;
+  checks: string[];
+}
+
+export interface ScrapeHealthReport {
+  generatedAt: Date;
+  cadenceHours: number;
+  staleThresholdHours: number;
+  latestSnapshotAt: Date | null;
+  hoursSinceLatestSnapshot: number | null;
+  status: DashboardHealthStatus;
+  actionRequired: boolean;
+  issues: string[];
+  platforms: ScrapeHealthPlatform[];
+  troubleshooting: ScrapeHealthTroubleshooting;
 }

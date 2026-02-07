@@ -19,7 +19,7 @@ import BrokeLoading from '@/components/broke/BrokeLoading';
 import { useMetricsData } from '@/hooks/dashboard/useMetricsData';
 import { useDateRange } from '@/hooks/dashboard/useDateRange';
 import { formatNumber, formatDelta, formatDate, getProfileUrl } from '@/lib/dashboard/formatters';
-import { colors, getPlatformColor } from '@/lib/dashboard/colors';
+import { getPlatformColor } from '@/lib/dashboard/colors';
 import type { Platform, PlatformMetrics } from '@/lib/dashboard/types';
 
 export default function CreatorDetailPage({
@@ -67,6 +67,7 @@ export default function CreatorDetailPage({
     instagram: 'Instagram',
     twitter: 'Twitter',
   }[platform];
+  const delta7d = latestMetrics?.delta7d ?? latestMetrics?.deltaFollowers ?? 0;
 
   if (isLoading) {
     return (
@@ -169,8 +170,8 @@ export default function CreatorDetailPage({
           />
           <StatCard
             label="Growth (7d)"
-            value={latestMetrics.deltaFollowers}
-            prefix={latestMetrics.deltaFollowers >= 0 ? '+' : ''}
+            value={delta7d}
+            prefix={delta7d >= 0 ? '+' : ''}
             delay={0.1}
           />
           <StatCard

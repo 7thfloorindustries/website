@@ -1,5 +1,10 @@
-import { NextResponse } from 'next/server';
-import { getMetricsWithDeltas, isDatabaseConfigured, type MetricWithDeltas } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  getMetricsHistoryWithDeltas,
+  getMetricsWithDeltas,
+  isDatabaseConfigured,
+  type MetricWithDeltas,
+} from '@/lib/db';
 import { fetchSheetData } from '@/lib/dashboard/googleSheets';
 import type { CreatorRecord, PlatformMetrics } from '@/lib/dashboard/types';
 
@@ -43,7 +48,24 @@ function transformToFlatRecords(metrics: MetricWithDeltas[]): CreatorRecord[] {
   });
 }
 
-export async function GET() {
+type MetricsMode = 'history' | 'latest';
+
+function parseDays(value: string | null): number {
+  if (!value) return 90;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || Number.isNaN(parsed)) return 90;
+  return Math.min(365, Math.max(1, parsed));
+}
+
+function parseMode(value: string | null): MetricsMode {
+  if (value === 'latest') return 'latest';
+  return 'history';
+}
+
+export async function GET(request: NextRequest) {
+  const days = parseDays(request.nextUrl.searchParams.get('days'));
+  const mode = parseMode(request.nextUrl.searchParams.get('mode'));
+
   try {
     // Check if PostgreSQL is configured
     const dbConfigured = await isDatabaseConfigured();
@@ -52,7 +74,9 @@ export async function GET() {
       // Use PostgreSQL - primary data source
       console.log('Fetching metrics from PostgreSQL...');
 
-      const metrics = await getMetricsWithDeltas();
+      const metrics = mode === 'latest'
+        ? await getMetricsWithDeltas()
+        : await getMetricsHistoryWithDeltas(days);
 
       if (metrics.length === 0) {
         // Database is configured but empty - fall back to Google Sheets

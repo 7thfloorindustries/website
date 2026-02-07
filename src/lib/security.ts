@@ -37,6 +37,8 @@ export function isValidOrigin(request: Request): boolean {
   const allowedOrigins = [
     'https://7thfloor.digital',
     'https://www.7thfloor.digital',
+    'https://brokedown.app',
+    'https://www.brokedown.app',
   ];
 
   // Allow localhost in development

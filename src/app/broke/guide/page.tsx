@@ -120,7 +120,7 @@ export default function GuidePage() {
           <li>
             <h2>AUTO-REFRESH</h2>
             <p style={{ marginTop: '0.5em', opacity: 0.7 }}>
-              Data refreshes automatically every 5 minutes. The LIVE indicator pulses when updating.
+              The dashboard polls data every 5 minutes. Scrapes run every 24 hours. "Last poll" and "Last scrape" are shown separately in the header.
             </p>
           </li>
         </ul>

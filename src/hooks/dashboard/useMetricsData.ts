@@ -7,10 +7,12 @@ interface RawCreatorRecord extends Omit<CreatorRecord, 'timestamp'> {
   timestamp: string;
 }
 
+export const METRICS_POLL_INTERVAL_MS = 5 * 60 * 1000;
+
 async function fetchMetrics(): Promise<CreatorRecord[]> {
-  const response = await fetch('/api/metrics');
+  const response = await fetch('/api/metrics?mode=history&days=90');
   if (!response.ok) {
-    throw new Error('Failed to fetch metrics');
+    throw new Error(`Failed to fetch metrics (${response.status})`);
   }
   const data: RawCreatorRecord[] = await response.json();
 
@@ -25,7 +27,7 @@ export function useMetricsData() {
   return useQuery<CreatorRecord[]>({
     queryKey: ['metricsData'],
     queryFn: fetchMetrics,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    staleTime: METRICS_POLL_INTERVAL_MS,
+    refetchInterval: METRICS_POLL_INTERVAL_MS,
   });
 }
