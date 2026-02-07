@@ -23,7 +23,7 @@ export const verzuzCaseStudy: CaseStudy = {
     "We orchestrated a strategic seeding campaign across key cultural moments that drove organic conversation and positioned the event as must-see viewing. Through targeted creator partnerships and community engagement, we turned a battle into a cultural phenomenon.",
   stats: [
     { label: "Spend", value: "$5K", prefix: "$", suffix: "K", numericValue: 5 },
-    { label: "Views", value: "2.3M", suffix: "M", numericValue: 2.3, decimals: 1 },
+    { label: "Views", value: "3.5M", suffix: "M", numericValue: 3.5, decimals: 1 },
     { label: "Trending", value: "#1" },
   ],
 };

@@ -81,6 +81,21 @@ export default function FloatingNav({
             {/* Divider */}
             <div className="w-px h-4 bg-white/10" />
 
+            {/* Services */}
+            <MagneticElement strength={0.2} radius={40}>
+              <Link
+                href="/services"
+                className={`nav-item px-4 py-2 text-sm transition-colors duration-300 rounded-full hover:bg-white/5 ${
+                  pathname === "/services" ? "text-[#C4A35A]" : "text-white/70 hover:text-white"
+                }`}
+              >
+                Services
+              </Link>
+            </MagneticElement>
+
+            {/* Divider */}
+            <div className="w-px h-4 bg-white/10" />
+
             {/* Contact */}
             <MagneticElement strength={0.2} radius={40}>
               <button
