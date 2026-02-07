@@ -22,6 +22,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
 import { revalidatePath } from 'next/cache';
+import * as Sentry from '@sentry/nextjs';
 import { insertSnapshots, isDatabaseConfigured, type MetricSnapshotInsert, type Platform } from '@/lib/db';
 import { getActiveCreators } from '@/lib/db/creators';
 import { detectAnomalies, type Anomaly } from '@/lib/anomaly';
@@ -484,6 +485,7 @@ async function scrapeAllPlatforms(roster: RosterEntry[]): Promise<ScrapeStats> {
       return await task.execute();
     } catch (error) {
       logger.error('Unhandled scrape error', { platform: task.platform, handle: task.handle, error: String(error) });
+      Sentry.captureException(error, { tags: { platform: task.platform, handle: task.handle } });
       return null;
     }
   });
@@ -725,6 +727,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Scrape failed', { error: error instanceof Error ? error.message : String(error) });
+    Sentry.captureException(error, { tags: { route: 'scrape' } });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Scrape failed' },
       { status: 500 }
